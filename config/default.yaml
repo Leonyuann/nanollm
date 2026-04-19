@@ -6,7 +6,7 @@ bpe:
   merge_path: "outputs/artifacts/merges.txt"
 
 data:
-  owt_train_path: "data/TinyStoriesV2-GPT4-train.txt"
-  owt_valid_path: "data/TinyStoriesV2-GPT4-valid.txt"
-  TinyStories_train_path: "data/TinyStoriesV2-train.txt"
-  TinyStories_valid_path: "data/TinyStoriesV2-valid.txt"
+  owt_train_path: "data/owt_train.txt"
+  owt_valid_path: "data/owt_valid.txt"
+  TinyStories_train_path: "data/TinyStoriesV2-GPT4-train.txt"
+  TinyStories_valid_path: "data/TinyStoriesV2-GPT4-valid.txt"

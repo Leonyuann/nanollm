@@ -47,8 +47,36 @@ def test_remove_special_tokens_with_empty_special_tokens_returns_original_text()
 
 
 @pytest.mark.unit
-def test_pretokenization(example_str, example_special_tokens):
-    fre_table = train_bpe.pretokenization(example_str, example_special_tokens)
+def test_pretokenize(example_str, example_special_tokens):
+    pretokenized = train_bpe.pretokenize(example_str, example_special_tokens)
+
+    assert pretokenized == [
+        "<",
+        "BOS",
+        ">",
+        "Hello",
+        ",",
+        " world",
+        "!",
+        " ",
+        "This",
+        " is",
+        " a",
+        " test",
+        " string",
+        " with",
+        " special",
+        " tokens",
+        ".",
+        " ",
+    ]
+
+
+@pytest.mark.unit
+def test_pretokenization_frequency_table(example_str, example_special_tokens):
+    fre_table = train_bpe.pretokenization_frequency_table(
+        train_bpe.pretokenize(example_str, example_special_tokens)
+    )
     assert fre_table[_byte_tokens(b"<")] == 1
     assert fre_table[_byte_tokens(b"BOS")] == 1
     assert fre_table[_byte_tokens(b">")] == 1
@@ -69,30 +97,38 @@ def test_pretokenization(example_str, example_special_tokens):
 
 
 @pytest.mark.unit
-def test_pretokenization_with_empty_special_tokens_counts_repeated_tokens():
-    fre_table = train_bpe.pretokenization("hi hi", [])
-    assert fre_table[_byte_tokens(b"hi")] == 1
-    assert fre_table[_byte_tokens(b" hi")] == 1
+def test_pretokenize_with_empty_special_tokens_counts_repeated_tokens():
+    assert train_bpe.pretokenize("hi hi", []) == ["hi", " hi"]
 
 
 @pytest.mark.unit
-def test_pretokenization_aggregates_repeated_tokens():
-    fre_table = train_bpe.pretokenization("Hello Hello Hello", [])
+def test_pretokenization_frequency_table_aggregates_repeated_tokens():
+    fre_table = train_bpe.pretokenization_frequency_table(
+        ["Hello", " Hello", " Hello"]
+    )
     assert fre_table[_byte_tokens(b"Hello")] == 1
     assert fre_table[_byte_tokens(b" Hello")] == 2
 
 
 @pytest.mark.unit
-def test_pretokenization_handles_unicode_and_numbers():
-    fre_table = train_bpe.pretokenization("你好 123 你好", [])
+def test_pretokenization_frequency_table_handles_unicode_and_numbers():
+    fre_table = train_bpe.pretokenization_frequency_table(
+        train_bpe.pretokenize("你好 123 你好", [])
+    )
     assert fre_table[_byte_tokens("你好")] == 1
     assert fre_table[_byte_tokens(b" 123")] == 1
     assert fre_table[_byte_tokens(" 你好")] == 1
 
 
 @pytest.mark.unit
-def test_pretokenization_returns_empty_table_for_only_special_tokens():
-    fre_table = train_bpe.pretokenization("<PAD><UNK><PAD>", ["<PAD>", "<UNK>"])
+def test_pretokenize_returns_empty_list_for_only_special_tokens():
+    pretokenized = train_bpe.pretokenize("<PAD><UNK><PAD>", ["<PAD>", "<UNK>"])
+    assert pretokenized == []
+
+
+@pytest.mark.unit
+def test_pretokenization_frequency_table_returns_empty_table_for_empty_pretokenization():
+    fre_table = train_bpe.pretokenization_frequency_table([])
     assert fre_table == {}
 
 
@@ -128,22 +164,6 @@ def test_merge_pair_merges_left_to_right_without_reusing_bytes():
     merged = train_bpe.merge_pair((b"a", b"a"), (b"a", b"a", b"a"))
 
     assert merged == (b"aa", b"a")
-
-
-@pytest.mark.unit
-def test_merge_initial_counts_pairs_weighted_by_word_frequency():
-    pair_counts, pair_locations = train_bpe.merge_initial(
-        _toy_vocab(b"a", b"b", b"c"),
-        {
-            (b"a", b"b", b"c"): 2,
-            (b"a", b"b"): 1,
-        },
-    )
-
-    assert pair_counts[(b"a", b"b")] == 3
-    assert pair_counts[(b"b", b"c")] == 2
-    assert pair_locations[(b"a", b"b")] == [(b"a", b"b", b"c"), (b"a", b"b")]
-    assert pair_locations[(b"b", b"c")] == [(b"a", b"b", b"c")]
 
 
 @pytest.mark.unit

@@ -89,10 +89,10 @@ def remove_special_tokens(
     return re.split(pattern, text)
 
 
-def pretokenization(
+def pretokenize(
     chunk: str,
     special_tokens: list[str],
-) ->  FrequencyTable:
+) ->  list[str]:
     """
     Pretokenize a chunk of the input file.
 
@@ -101,49 +101,46 @@ def pretokenization(
         special_tokens: A list of special tokens acted as hard boundaries.
     
     Returns:
-        A frequency table of token pairs in the chunk.
+        A list of pretokenized words from the chunk, with special tokens removed.
     """
-    fre_table: FrequencyTable = {}
     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-
+    pretokenization = []
+    
     ## Remove special tokens
     chunks = remove_special_tokens(chunk, special_tokens)
 
     for chunk in chunks:
         words = re.finditer(PAT,chunk)
         for word in words:
-            byte_words: bytes = word.group().encode("utf-8")
-            tokens = tuple(bytes([byte]) for byte in byte_words)
-            fre_table[tokens] = fre_table.get(tokens, 0) + 1
+            pretokenization.append(word.group())
 
-    return fre_table
+    return pretokenization
 
 
-def merge_initial(
-    vocab: Vocabulary,
-    fre_table: FrequencyTable,
-) -> tuple[PairCounts, PairLocations]:
+def pretokenization_frequency_table(
+    pretokenization: list[str],
+) -> FrequencyTable:
     """
-    Count the frequency of each token pair in the frequency table and track their locations.
-
+    Build a frequency table of token pairs from the pretokenized text.
     Args:
-    vocab: The current vocabulary of tokens.
-    fre_table: The frequency table of token pairs.
+        pretokenization: A list of pretokenized words.
 
     Returns:
-    A tuple containing:
-    - A dictionary mapping token pairs to their frequency counts.
-    - A dictionary mapping token pairs to a list of their locations in the frequency table.
+        A frequency table mapping tuples of byte tokens to their frequency counts.
     """
-    pair_counts: PairCounts = {}
-    pair_locations: PairLocations = {}
+    frequency_table: FrequencyTable = {}
+    for word in pretokenization:
+        byte_words = word.encode("utf-8")
+        tokens = tuple(bytes([byte]) for byte in byte_words)
+        frequency_table[tokens] = frequency_table.get(tokens, 0) + 1
+    return frequency_table
 
-    for word in fre_table:
-        for i in range(len(word) - 1):
-            pair = (word[i], word[i+1])
-            pair_counts[pair] = pair_counts.get(pair, 0) + fre_table[word]
-            pair_locations[pair] = pair_locations.get(pair, []) + [word]
-    return pair_counts, pair_locations
+
+def _chunk_frequency_table(
+    chunk: str,
+    special_tokens: list[str],
+) -> FrequencyTable:
+    return pretokenization_frequency_table(pretokenize(chunk, special_tokens))
 
 
 def count_pairs_in_word(
@@ -307,9 +304,12 @@ def train_bpe(
             f.seek(start)
             chunks.append(f.read(end-start).decode("utf-8", errors="ignore"))
 
-    # Pretokenize each chunk in parallel, counting the frequency of each token pair
-    with Pool(num_process) as pool: 
-        fre_tables = pool.starmap(pretokenization, [(chunk, special_tokens) for chunk in chunks])
+    # Pretokenize each chunk in parallel, then build its frequency table
+    with Pool(num_process) as pool:
+        fre_tables = pool.starmap(
+            _chunk_frequency_table,
+            [(chunk, special_tokens) for chunk in chunks],
+        )
     
     # Combine frequency tables from all chunks into a single frequency table
     fre_table: FrequencyTable = {}
