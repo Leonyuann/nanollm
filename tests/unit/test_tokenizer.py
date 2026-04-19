@@ -136,6 +136,67 @@ def test_encode_raises_key_error_when_merged_token_is_missing_from_vocab():
         tk.encode("aa")
 
 
+@pytest.mark.unit
+def test_encode_iterable_flattens_encoded_strings_in_order():
+    tk = tokenizer(
+        vocab=_vocab_with_extra_tokens(b"aa"),
+        merges=[(b"a", b"a")],
+        special_tokens=["<PAD>"],
+    )
+    texts = ["aa", "", "b", "a<PAD>a"]
+
+    expected: list[int] = []
+    for text in texts:
+        expected.extend(tk.encode(text))
+
+    assert list(tk.encode_iterable(texts)) == expected
+
+
+@pytest.mark.unit
+def test_encode_iterable_returns_iterator_and_is_lazy():
+    tk = tokenizer(vocab=_base_vocab(), merges=[], special_tokens=[])
+    consumed: list[str] = []
+
+    def text_stream():
+        consumed.append("start")
+        yield "ab"
+        consumed.append("after-first-yield")
+        yield "cd"
+
+    token_iter = tk.encode_iterable(text_stream())
+
+    assert iter(token_iter) is token_iter
+    assert consumed == []
+
+    assert next(token_iter) == ord("a")
+    assert consumed == ["start"]
+
+    assert list(token_iter) == [ord("b"), ord("c"), ord("d")]
+    assert consumed == ["start", "after-first-yield"]
+
+
+@pytest.mark.unit
+def test_encode_iterable_delays_source_exceptions_until_iteration():
+    tk = tokenizer(vocab=_base_vocab(), merges=[], special_tokens=[])
+
+    def text_stream():
+        yield "ab"
+        raise RuntimeError("boom")
+
+    token_iter = tk.encode_iterable(text_stream())
+
+    assert list(next(token_iter) for _ in range(2)) == [ord("a"), ord("b")]
+    with pytest.raises(RuntimeError, match="boom"):
+        next(token_iter)
+
+
+@pytest.mark.unit
+def test_encode_iterable_returns_empty_iterator_for_empty_input():
+    tk = tokenizer(vocab=_base_vocab(), merges=[], special_tokens=[])
+
+    assert list(tk.encode_iterable([])) == []
+
+
 def _write_tokenizer_files(tmp_path, vocab_lines: list[str], merge_lines: list[str]):
     vocab_path = tmp_path / "vocab.txt"
     merge_path = tmp_path / "merges.txt"

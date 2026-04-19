@@ -1,7 +1,8 @@
 from tokenizer.types import Vocabulary, Merges
 from tokenizer.train_bpe import pretokenize
 from config_manager import load_BPEConfig
-from typing import TypeAlias, Iterable, Iterator
+from typing import TypeAlias
+from collections.abc import Iterable, Iterator
 
 EncodeVocabulary: TypeAlias = dict[bytes, int]  
 
@@ -122,8 +123,18 @@ class tokenizer:
         self, 
         iterable: Iterable[str],
     ) -> Iterator[int]:
+        """
+        Given an iterable of strings, return a generator that lazily yields token IDs.
+
+        Args:
+            iterable: An iterable of strings to encode.
         
-        return []
+        Returns:
+            A generator that yields token IDs corresponding to the input strings.
+        """
+        for text in iterable:
+            yield from self.encode(text)
+
 
     def decode(
         self,
