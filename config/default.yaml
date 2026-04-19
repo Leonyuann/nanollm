@@ -4,3 +4,9 @@ bpe:
   special_tokens: ["<|endoftext|>"]
   vocab_path: "outputs/artifacts/vocab.txt"
   merge_path: "outputs/artifacts/merges.txt"
+
+data:
+  owt_train_path: "data/TinyStoriesV2-GPT4-train.txt"
+  owt_valid_path: "data/TinyStoriesV2-GPT4-valid.txt"
+  TinyStories_train_path: "data/TinyStoriesV2-train.txt"
+  TinyStories_valid_path: "data/TinyStoriesV2-valid.txt"

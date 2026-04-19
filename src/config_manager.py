@@ -1,6 +1,8 @@
 import yaml
 from dataclasses import dataclass
 
+config_path: str = "config/default.yaml"
+
 @dataclass
 class BPEConfig:
     num_process: int
@@ -9,9 +11,21 @@ class BPEConfig:
     vocab_path: str
     merge_path: str
 
+@dataclass
+class DataConfig:
+    owt_train_path: str
+    owt_valid_path: str
+    TinyStories_train_path: str
+    TinyStories_valid_path: str
 
-def load_BPEConfig(config_path: str) -> BPEConfig:
+def load_BPEConfig() -> BPEConfig:
     with open(config_path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
     
     return BPEConfig(**config_data["bpe"])
+
+def load_DataConfig() -> DataConfig:
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        config_data = yaml.safe_load(config_file)
+    
+    return DataConfig(**config_data["data"])

@@ -4,10 +4,8 @@ from typing import TypeAlias, BinaryIO
 from multiprocessing import Pool
 from collections import Counter, defaultdict
 from config_manager import BPEConfig, load_BPEConfig
+from tokenizer.types import Vocabulary, Merges
 
-
-Vocabulary: TypeAlias = dict[int, bytes]
-Merges: TypeAlias = list[tuple[bytes, bytes]]
 FrequencyTable: TypeAlias = dict[tuple[bytes, ...], int]
 PairCounts: TypeAlias = dict[tuple[bytes, bytes], int]
 PairLocations: TypeAlias = dict[tuple[bytes, bytes], set[tuple[bytes, ...]]]
@@ -292,7 +290,7 @@ def train_bpe(
         Final vocabulary and list of merges.
     """
     # Initialize with UTF-8 single-byte characters as the initial vocabulary
-    config = load_BPEConfig("config/default.yaml")
+    config = load_BPEConfig()
     vocab = uft8_vocab()
     num_process = config.num_process
 
