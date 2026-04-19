@@ -3,6 +3,7 @@ import regex as re
 from typing import TypeAlias, BinaryIO
 from multiprocessing import Pool
 from collections import Counter, defaultdict
+from config_manager import BPEConfig, load_BPEConfig
 
 
 Vocabulary: TypeAlias = dict[int, bytes]
@@ -291,8 +292,9 @@ def train_bpe(
         Final vocabulary and list of merges.
     """
     # Initialize with UTF-8 single-byte characters as the initial vocabulary
+    config = load_BPEConfig("config/default.yaml")
     vocab = uft8_vocab()
-    num_process = 4
+    num_process = config.num_process
 
     # Add special tokens to the vocabulary
     for special_token in special_tokens:

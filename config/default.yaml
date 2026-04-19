@@ -1,0 +1,6 @@
+bpe:
+  num_process: 4
+  vocab_size: 10000
+  special_tokens: ["<|endoftext|>"]
+  vocab_path: "outputs/artifacts/vocab.txt"
+  merge_path: "outputs/artifacts/merges.txt"
