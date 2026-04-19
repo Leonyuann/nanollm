@@ -1,7 +1,7 @@
 from tokenizer.types import Vocabulary, Merges
 from tokenizer.train_bpe import pretokenize
 from config_manager import load_BPEConfig
-from typing import TypeAlias
+from typing import TypeAlias, Iterable, Iterator
 
 EncodeVocabulary: TypeAlias = dict[bytes, int]  
 
@@ -25,13 +25,42 @@ class tokenizer:
         self.merges = merges
         self.special_tokens = special_tokens or []
         
+    @classmethod
     def from_files(
         cls,
         vocab_filepath: str,
         merge_filepath: str,
         special_tokens: list[str] = None,
     ): 
-        return None
+        """
+        Create a tokenizer instance from vocabulary and merges files.
+
+        Args:
+            vocab_filepath: The file path to the vocabulary file, which should contain token IDs and their corresponding byte representations.
+            merge_filepath: The file path to the merges file, which should contain byte pairs that should be merged during encoding.
+            special_tokens: A list of special tokens that should be treated as hard boundaries during pretokenization.
+        
+        Returns:
+            An instance of the tokenizer class initialized with the provided vocabulary, merges, and special tokens.
+        """        
+        vocab: Vocabulary = {}
+        merges: Merges = []
+
+        with open(vocab_filepath, "r", encoding="utf-8") as vocab_file:
+            for line in vocab_file:
+                token_id_str, byte_str = line.strip().split("\t")
+                token_id = int(token_id_str)
+                byte_token = bytes.fromhex(byte_str)
+                vocab[token_id] = byte_token
+
+        with open(merge_filepath, "r", encoding="utf-8") as merge_file:
+            for line in merge_file:
+                byte1_str, byte2_str = line.strip().split("\t")
+                byte1 = bytes.fromhex(byte1_str)
+                byte2 = bytes.fromhex(byte2_str)
+                merges.append((byte1, byte2))
+
+        return cls(vocab=vocab, merges=merges, special_tokens=special_tokens)
     
     def encode(
         self,
@@ -88,12 +117,32 @@ class tokenizer:
 
         return text_encoded
     
+    
+    def encode_iterable(
+        self, 
+        iterable: Iterable[str],
+    ) -> Iterator[int]:
+        
+        return []
+
     def decode(
         self,
         ids: list[int]
     ) -> str:
-        return ""
-    
+        """
+        Decode a sequence of token IDs into text.
+
+        Args:
+            ids: A list of token IDs to decode.
+
+        Returns:
+            The decoded string corresponding to the input token IDs.
+        """
+        decode_bytes : bytes = b""
+        for token in ids:
+            decode_bytes += self.vocab[token]
+        return decode_bytes.decode("utf-8", errors="replace")
+
     def encodevocab(
         self,
     ) -> EncodeVocabulary:

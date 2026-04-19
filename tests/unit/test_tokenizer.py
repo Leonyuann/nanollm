@@ -134,3 +134,117 @@ def test_encode_raises_key_error_when_merged_token_is_missing_from_vocab():
 
     with pytest.raises(KeyError, match=r"b'aa'"):
         tk.encode("aa")
+
+
+def _write_tokenizer_files(tmp_path, vocab_lines: list[str], merge_lines: list[str]):
+    vocab_path = tmp_path / "vocab.txt"
+    merge_path = tmp_path / "merges.txt"
+    vocab_content = "\n".join(vocab_lines)
+    merge_content = "\n".join(merge_lines)
+    if vocab_content:
+        vocab_content += "\n"
+    if merge_content:
+        merge_content += "\n"
+    vocab_path.write_text(vocab_content, encoding="utf-8")
+    merge_path.write_text(merge_content, encoding="utf-8")
+    return vocab_path, merge_path
+
+
+@pytest.mark.unit
+def test_from_files_loads_vocab_merges_and_special_tokens(tmp_path):
+    vocab_path, merge_path = _write_tokenizer_files(
+        tmp_path,
+        vocab_lines=["97\t61", "98\t62", "256\t6162"],
+        merge_lines=["61\t62"],
+    )
+
+    tk = tokenizer.from_files(
+        str(vocab_path),
+        str(merge_path),
+        special_tokens=["<PAD>"],
+    )
+
+    assert isinstance(tk, tokenizer)
+    assert tk.vocab == {97: b"a", 98: b"b", 256: b"ab"}
+    assert tk.merges == [(b"a", b"b")]
+    assert tk.special_tokens == ["<PAD>"]
+
+
+@pytest.mark.unit
+def test_from_files_defaults_special_tokens_to_empty_list(tmp_path):
+    vocab_path, merge_path = _write_tokenizer_files(
+        tmp_path,
+        vocab_lines=["97\t61"],
+        merge_lines=[],
+    )
+
+    tk = tokenizer.from_files(str(vocab_path), str(merge_path))
+
+    assert tk.special_tokens == []
+
+
+@pytest.mark.unit
+def test_decode_returns_empty_string_for_empty_ids():
+    tk = tokenizer(vocab=_base_vocab(), merges=[], special_tokens=[])
+
+    assert tk.decode([]) == ""
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "text",
+    [
+        "abc",
+        " hi",
+        "a\nb",
+        "你好",
+        "🙂",
+        "a<PAD>a",
+    ],
+)
+def test_decode_without_merges_reconstructs_utf8_text(text):
+    tk = tokenizer(vocab=_base_vocab(), merges=[], special_tokens=["<PAD>"])
+
+    assert tk.decode(_utf8_token_ids(text)) == text
+
+
+@pytest.mark.unit
+def test_decode_accepts_mixed_byte_and_merged_tokens():
+    tk = tokenizer(
+        vocab=_vocab_with_extra_tokens(b"ab", "你好".encode("utf-8")),
+        merges=[],
+        special_tokens=[],
+    )
+
+    assert tk.decode([256, 99, 257]) == "abc你好"
+
+
+@pytest.mark.unit
+def test_decode_joins_bytes_across_token_boundaries_before_utf8_decoding():
+    tk = tokenizer(
+        vocab=_vocab_with_extra_tokens(b"\xe4\xbd", b"\xa0\xe5\xa5\xbd"),
+        merges=[],
+        special_tokens=[],
+    )
+
+    assert tk.decode([256, 257]) == "你好"
+
+
+@pytest.mark.unit
+def test_decode_round_trips_encoded_text_with_merges_and_special_token_text():
+    tk = tokenizer(
+        vocab=_vocab_with_extra_tokens(b"aa"),
+        merges=[(b"a", b"a")],
+        special_tokens=["<PAD>"],
+    )
+    text = "aa<PAD>aaa"
+
+    assert tk.decode(tk.encode(text)) == text
+
+
+@pytest.mark.unit
+def test_decode_raises_key_error_for_unknown_token_id():
+    tk = tokenizer(vocab=_base_vocab(), merges=[], special_tokens=[])
+
+    with pytest.raises(KeyError, match="999"):
+        tk.decode([999])
