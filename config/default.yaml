@@ -10,3 +10,18 @@ data:
   owt_valid_path: "data/owt_valid.txt"
   TinyStories_train_path: "data/TinyStoriesV2-GPT4-train.txt"
   TinyStories_valid_path: "data/TinyStoriesV2-GPT4-valid.txt"
+
+model:
+  vocab_size: 10000
+  max_seq_len: 256
+  d_model: 512
+  num_layers: 10
+  num_heads: 8
+  ffn_hidden_dim: 2048
+  norm_type: "rmsnorm"
+  ffn_type: "swiglu"
+  use_residual: true
+  dropout: 0.0
+  tie_embeddings: true
+  rope_base: 10000.0
+  bias: true
