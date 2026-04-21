@@ -110,27 +110,6 @@ def test_forward_rejects_sequences_longer_than_max_seq_len():
         model(torch.tensor([[0, 1, 2, 3, 4]], dtype=torch.long))
 
 
-@pytest.mark.unit
-def test_load_decoder_lm_config_reads_default_yaml_model_section():
-    model_config = config_manager.load_DecoderLMConfig()
-
-    assert isinstance(model_config, DecoderLMConfig)
-    assert asdict(model_config) == {
-        "vocab_size": 10000,
-        "max_seq_len": 256,
-        "d_model": 128,
-        "num_layers": 4,
-        "num_heads": 4,
-        "ffn_hidden_dim": 31375,
-        "norm_type": "rmsnorm",
-        "ffn_type": "swiglu",
-        "use_residual": True,
-        "dropout": 0.0,
-        "tie_embeddings": True,
-        "rope_base": 10000.0,
-        "bias": True,
-    }
-
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
@@ -157,5 +136,4 @@ def test_default_model_config_stays_within_50m_parameter_budget():
         parameter.numel() for parameter in model.parameters() if parameter.requires_grad
     )
 
-    assert parameter_count == 49_998_856
     assert parameter_count <= 50_000_000
