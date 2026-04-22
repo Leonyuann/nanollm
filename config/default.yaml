@@ -11,6 +11,9 @@ data:
   TinyStories_train_path: "data/TinyStoriesV2-GPT4-train.txt"
   TinyStories_valid_path: "data/TinyStoriesV2-GPT4-valid.txt"
 
+artifacts:
+  runs_root: "outputs/runs"
+
 model:
   vocab_size: 10000
   max_seq_len: 256

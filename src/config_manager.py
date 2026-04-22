@@ -21,6 +21,34 @@ class DataConfig:
     TinyStories_valid_path: str
 
 
+@dataclass(slots=True)
+class ArtifactsConfig:
+    """Configuration for saved run artifacts.
+
+    Extended description.
+
+    Attributes:
+        runs_root: Root directory containing saved run outputs.
+    """
+
+    runs_root: str
+
+    def __post_init__(self) -> None:
+        """Validate artifact-output configuration.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+
+        Raises:
+            ValueError: If ``runs_root`` is empty.
+        """
+        if not self.runs_root:
+            raise ValueError("runs_root must not be empty")
+
+
 VALID_FFN_TYPES = {"swiglu", "gelu", "silu"}
 VALID_NORM_TYPES = {"rmsnorm", "layernorm", "none"}
 
@@ -165,6 +193,11 @@ def load_BPEConfig() -> BPEConfig:
 def load_DataConfig() -> DataConfig:
     config_data = _load_config_data()
     return DataConfig(**config_data["data"])
+
+
+def load_ArtifactsConfig() -> ArtifactsConfig:
+    config_data = _load_config_data()
+    return ArtifactsConfig(**config_data["artifacts"])
 
 
 def load_DecoderLMConfig() -> DecoderLMConfig:

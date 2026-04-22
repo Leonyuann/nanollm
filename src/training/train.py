@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
 import torch
 from torch.nn import functional as F
 
 from config_manager import DataConfig, TrainingConfig
 from model import DecoderOnlyTransformerLM
+from run_artifacts import append_jsonl_record, save_checkpoint
 
 from .data import build_dataloaders
 
@@ -21,11 +23,41 @@ class TrainingResult:
         global_step: Number of completed optimization steps.
         train_loss: Training loss from the final optimization step.
         validation_loss: Validation loss from the most recent evaluation run.
+        best_validation_loss: Best validation loss observed during training.
+        artifact_dir: Run-artifact directory used for saving outputs, if any.
     """
 
     global_step: int
     train_loss: float
     validation_loss: float | None
+    best_validation_loss: float | None = None
+    artifact_dir: str | None = None
+
+
+def build_checkpoint_payload(
+    model: DecoderOnlyTransformerLM,
+    global_step: int,
+    train_loss: float,
+    validation_loss: float | None,
+) -> dict[str, object]:
+    """Create the saved checkpoint payload for a training step.
+
+    Args:
+        model: Trained language model.
+        global_step: Completed optimizer step count.
+        train_loss: Training loss for the current step.
+        validation_loss: Validation loss associated with the checkpoint.
+
+    Returns:
+        A serializable checkpoint payload dictionary.
+    """
+    return {
+        "global_step": global_step,
+        "model_config": asdict(model.config),
+        "model_state_dict": model.state_dict(),
+        "train_loss": train_loss,
+        "validation_loss": validation_loss,
+    }
 
 
 class WarmupConstantScheduler:
@@ -202,6 +234,7 @@ def run_training(
     text_tokenizer,
     data_config: DataConfig,
     training_config: TrainingConfig,
+    artifact_dir: str | Path | None = None,
 ) -> TrainingResult:
     """Train a decoder-only language model with AdamW and warmup.
 
@@ -210,6 +243,7 @@ def run_training(
         text_tokenizer: Tokenizer instance used for text encoding.
         data_config: Data-path configuration.
         training_config: Training-loop configuration.
+        artifact_dir: Optional run-artifact directory for saving training outputs.
 
     Returns:
         A summary of the completed training run.
@@ -233,10 +267,21 @@ def run_training(
         optimizer=optimizer,
         warmup_steps=training_config.warmup_steps,
     )
+    run_artifact_dir = Path(artifact_dir) if artifact_dir is not None else None
+    metrics_path = None
+    latest_checkpoint_path = None
+    best_checkpoint_path = None
+    if run_artifact_dir is not None:
+        metrics_path = run_artifact_dir / "metrics.jsonl"
+        checkpoints_dir = run_artifact_dir / "checkpoints"
+        checkpoints_dir.mkdir(parents=True, exist_ok=True)
+        latest_checkpoint_path = checkpoints_dir / "latest.pt"
+        best_checkpoint_path = checkpoints_dir / "best.pt"
 
     train_iterator = iter(train_loader)
     last_train_loss = float("nan")
     last_valid_loss: float | None = None
+    best_valid_loss: float | None = None
 
     model.train()
     for step in range(1, training_config.max_steps + 1):
@@ -256,6 +301,16 @@ def run_training(
 
         if step % training_config.log_interval == 0:
             print(f"step={step} train_loss={last_train_loss:.4f} lr={step_lr:.6g}")
+            if metrics_path is not None:
+                append_jsonl_record(
+                    metrics_path,
+                    {
+                        "lr": step_lr,
+                        "step": step,
+                        "train_loss": last_train_loss,
+                        "type": "train",
+                    },
+                )
 
         if step % training_config.eval_interval == 0:
             last_valid_loss = evaluate(
@@ -265,9 +320,34 @@ def run_training(
                 eval_steps=training_config.eval_steps,
             )
             print(f"step={step} valid_loss={last_valid_loss:.4f}")
+            if metrics_path is not None:
+                append_jsonl_record(
+                    metrics_path,
+                    {
+                        "step": step,
+                        "type": "eval",
+                        "valid_loss": last_valid_loss,
+                    },
+                )
+            if latest_checkpoint_path is not None:
+                checkpoint_payload = build_checkpoint_payload(
+                    model=model,
+                    global_step=step,
+                    train_loss=last_train_loss,
+                    validation_loss=last_valid_loss,
+                )
+                save_checkpoint(latest_checkpoint_path, checkpoint_payload)
+                if best_valid_loss is None or last_valid_loss < best_valid_loss:
+                    best_valid_loss = last_valid_loss
+                    if best_checkpoint_path is not None:
+                        save_checkpoint(best_checkpoint_path, checkpoint_payload)
+            elif best_valid_loss is None or last_valid_loss < best_valid_loss:
+                best_valid_loss = last_valid_loss
 
     return TrainingResult(
         global_step=training_config.max_steps,
         train_loss=last_train_loss,
         validation_loss=last_valid_loss,
+        best_validation_loss=best_valid_loss,
+        artifact_dir=str(run_artifact_dir) if run_artifact_dir is not None else None,
     )

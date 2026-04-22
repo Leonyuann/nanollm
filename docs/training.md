@@ -11,6 +11,7 @@ The implementation is intentionally small and explicit:
 - `torch.optim.AdamW`
 - linear warmup followed by a constant learning rate
 - periodic validation on the configured validation split
+- optional run artifact saving layered on top of the existing training loop
 
 The training code does not modify tokenizer behavior. It only consumes the current runtime tokenizer through `tokenizer.from_files(...)` and `encode_iterable(...)`.
 
@@ -37,11 +38,20 @@ Contains the training logic:
 - `evaluate(...)`
 - `run_training(...)`
 
+### `src/run_artifacts.py`
+
+Contains the lightweight helpers used for run directories, metrics logs,
+checkpoints, config snapshots, and summary updates.
+
 ## Configuration
 
-Training configuration is loaded from `config/default.yaml` through `config_manager.load_TrainingConfig()`.
+Training configuration is loaded from `config/default.yaml` through
+`config_manager.load_TrainingConfig()`.
 
 ```yaml
+artifacts:
+  runs_root: "outputs/runs"
+
 training:
   dataset: "tinystories"
   batch_size: 8
@@ -57,6 +67,7 @@ training:
 
 Field meanings:
 
+- `runs_root`: root directory containing per-run outputs
 - `dataset`: one of `tinystories` or `owt`
 - `batch_size`: number of token windows per training step
 - `max_steps`: number of optimizer steps to run
@@ -115,6 +126,43 @@ The learning-rate schedule is:
 - otherwise linearly increase from step 1 to `warmup_steps`
 - stay constant at the base learning rate after warmup
 
+## Saved Training Artifacts
+
+When `scripts/train_lm.py` is used, the training loop writes artifacts under
+`outputs/runs/<run_name>/` without changing the optimizer, scheduler, loss, or
+batch construction.
+
+The saved files are:
+
+- `checkpoints/latest.pt`: checkpoint from the most recent validation event
+- `checkpoints/best.pt`: checkpoint with the best observed validation loss
+- `metrics.jsonl`: newline-delimited training and validation metrics
+- `config.snapshot.yaml`: copy of the config used for the run
+- `tokenizer/vocab.txt` and `tokenizer/merges.txt`: copied tokenizer artifacts
+- `summary.json`: high-level index of the run outputs
+
+Checkpoint payloads contain:
+
+- `model_state_dict`
+- `model_config`
+- `global_step`
+- `train_loss`
+- `validation_loss`
+
+## Standalone Evaluation And Generation
+
+Report-oriented evaluation and generation stay outside the training loop:
+
+```bash
+uv run python scripts/evaluate_lm.py --run-dir outputs/runs/demo-run
+uv run python scripts/generate_text.py --run-dir outputs/runs/demo-run
+```
+
+`scripts/evaluate_lm.py` writes `eval/eval_owt.json`.
+
+`scripts/generate_text.py` writes `samples/sample_256.txt` with greedy decoding
+from the saved checkpoint.
+
 ## Running Training
 
 Before training, make sure the tokenizer artifact files referenced by `bpe.vocab_path` and `bpe.merge_path` already exist.
@@ -128,11 +176,17 @@ uv run python scripts/train_tokenizer.py --input data/owt_train.txt
 Run:
 
 ```bash
-uv run python scripts/train_lm.py
+uv run python scripts/train_lm.py --run-name demo-run
 ```
 
 Optionally:
 
 ```bash
 uv run python scripts/train_lm.py --config config/default.yaml
+```
+
+To run the entire minimal workflow:
+
+```bash
+uv run python scripts/run_pipeline.py --run-name demo-run
 ```

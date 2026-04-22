@@ -85,3 +85,86 @@ def test_run_training_updates_model_parameters_and_reports_validation_loss(tmp_p
     assert result.validation_loss is not None
     assert math.isfinite(result.validation_loss)
     assert not torch.allclose(model.token_embedding.weight.detach(), initial_embedding)
+
+
+@pytest.mark.integration
+def test_run_training_artifact_saving_preserves_numerics(tmp_path):
+    train_path = tmp_path / "train.txt"
+    valid_path = tmp_path / "valid.txt"
+    train_path.write_text("hello world\n" * 8, encoding="utf-8")
+    valid_path.write_text("validation data\n" * 8, encoding="utf-8")
+
+    vocab_path, merge_path = _write_tokenizer_files(tmp_path)
+    text_tokenizer = tokenizer.from_files(str(vocab_path), str(merge_path), special_tokens=[])
+
+    data_config = DataConfig(
+        owt_train_path=str(train_path),
+        owt_valid_path=str(valid_path),
+        TinyStories_train_path=str(train_path),
+        TinyStories_valid_path=str(valid_path),
+    )
+    model_config = DecoderLMConfig(
+        vocab_size=256,
+        max_seq_len=4,
+        d_model=16,
+        num_layers=2,
+        num_heads=4,
+        ffn_hidden_dim=32,
+        norm_type="rmsnorm",
+        ffn_type="swiglu",
+        use_residual=True,
+        dropout=0.0,
+        tie_embeddings=False,
+        rope_base=10000.0,
+        bias=True,
+    )
+    training_config = TrainingConfig(
+        dataset="tinystories",
+        batch_size=2,
+        max_steps=3,
+        learning_rate=1e-3,
+        warmup_steps=2,
+        log_interval=1,
+        eval_interval=1,
+        eval_steps=1,
+        device="cpu",
+        seed=0,
+    )
+
+    torch.manual_seed(123)
+    model_without_artifacts = DecoderOnlyTransformerLM(model_config)
+    torch.manual_seed(123)
+    model_with_artifacts = DecoderOnlyTransformerLM(model_config)
+
+    result_without_artifacts = run_training(
+        model=model_without_artifacts,
+        text_tokenizer=text_tokenizer,
+        data_config=data_config,
+        training_config=training_config,
+    )
+    artifact_dir = tmp_path / "run"
+    result_with_artifacts = run_training(
+        model=model_with_artifacts,
+        text_tokenizer=text_tokenizer,
+        data_config=data_config,
+        training_config=training_config,
+        artifact_dir=artifact_dir,
+    )
+
+    assert result_with_artifacts.global_step == result_without_artifacts.global_step
+    assert result_with_artifacts.train_loss == pytest.approx(result_without_artifacts.train_loss)
+    assert result_with_artifacts.validation_loss == pytest.approx(result_without_artifacts.validation_loss)
+    assert result_with_artifacts.best_validation_loss == pytest.approx(
+        result_without_artifacts.validation_loss
+    )
+
+    for parameter_without, parameter_with in zip(
+        model_without_artifacts.state_dict().values(),
+        model_with_artifacts.state_dict().values(),
+        strict=True,
+    ):
+        assert torch.equal(parameter_without, parameter_with)
+
+    assert (artifact_dir / "metrics.jsonl").exists()
+    assert (artifact_dir / "checkpoints" / "latest.pt").exists()
+    assert (artifact_dir / "checkpoints" / "best.pt").exists()
