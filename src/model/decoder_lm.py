@@ -13,7 +13,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .config import DecoderLMConfig
+from config_manager import DecoderLMConfig
 
 
 class RMSNorm(nn.Module):

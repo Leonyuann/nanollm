@@ -1,11 +1,10 @@
 import pytest
 import torch
 
-from config_manager import DataConfig
+from config_manager import DataConfig, TrainingConfig
 from tokenizer.tokenizer import tokenizer
 from training import (
     TokenSequenceIterableDataset,
-    TrainingConfig,
     WarmupConstantScheduler,
     compute_next_token_loss,
 )

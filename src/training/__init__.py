@@ -1,4 +1,4 @@
-from .config import TrainingConfig
+from config_manager import TrainingConfig
 
 
 __all__ = [
