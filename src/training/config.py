@@ -1,26 +1,4 @@
-import yaml
 from dataclasses import dataclass
-
-from model.config import DecoderLMConfig
-from training.config import TrainingConfig
-
-config_path: str = "config/default.yaml"
-
-@dataclass
-class BPEConfig:
-    num_process: int
-    vocab_size: int
-    special_tokens: list[str]
-    vocab_path: str
-    merge_path: str
-    
-
-@dataclass
-class DataConfig:
-    owt_train_path: str
-    owt_valid_path: str
-    TinyStories_train_path: str
-    TinyStories_valid_path: str
 
 
 VALID_DATASETS = {"tinystories", "owt"}
@@ -95,28 +73,3 @@ class TrainingConfig:
         if self.device not in VALID_DEVICES:
             valid_devices = ", ".join(sorted(VALID_DEVICES))
             raise ValueError(f"device must be one of: {valid_devices}")
-
-
-def _load_config_data() -> dict:
-    with open(config_path, "r", encoding="utf-8") as config_file:
-        return yaml.safe_load(config_file)
-
-
-def load_BPEConfig() -> BPEConfig:
-    config_data = _load_config_data()
-    return BPEConfig(**config_data["bpe"])
-
-
-def load_DataConfig() -> DataConfig:
-    config_data = _load_config_data()
-    return DataConfig(**config_data["data"])
-
-
-def load_DecoderLMConfig() -> DecoderLMConfig:
-    config_data = _load_config_data()
-    return DecoderLMConfig(**config_data["model"])
-
-
-def load_TrainingConfig() -> TrainingConfig:
-    config_data = _load_config_data()
-    return TrainingConfig(**config_data["training"])

@@ -186,10 +186,10 @@ print(logits.shape)  # [1, 4, vocab_size]
 
 The current implementation intentionally does not include:
 
-- training loop or optimizer setup
-- loss computation helper
 - text generation or sampling utilities
 - KV cache for incremental decoding
 - returning hidden states or attention maps
 - flash-attention-specific tuning beyond PyTorch SDPA defaults
 - custom parameter initialization schemes
+
+Basic training support now lives in `src/training/`. The remaining unsupported items above are still intentionally out of scope for this baseline implementation.
