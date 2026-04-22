@@ -119,6 +119,12 @@ The learning-rate schedule is:
 
 Before training, make sure the tokenizer artifact files referenced by `bpe.vocab_path` and `bpe.merge_path` already exist.
 
+You can build them with:
+
+```bash
+uv run python scripts/train_tokenizer.py --input data/owt_train.txt
+```
+
 Run:
 
 ```bash

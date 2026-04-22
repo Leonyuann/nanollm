@@ -17,6 +17,12 @@ The training loop uses:
 
 Training depends on tokenizer artifacts already existing at the paths configured under `bpe:` in `config/default.yaml`.
 
+Train tokenizer artifacts with:
+
+```bash
+uv run python scripts/train_tokenizer.py --input data/owt_train.txt
+```
+
 Run training with:
 
 ```bash

@@ -189,9 +189,23 @@ Example:
 
 This format is different from the current `main.py` output, which writes human-readable text such as `97 -> a`. Those files are convenient for inspection, but they are not directly compatible with `tokenizer.from_files(...)` as written today.
 
+The repository now provides `scripts/train_tokenizer.py`, which writes artifacts in exactly this machine-readable format.
+
 ## Usage Examples
 
 ### Train a tokenizer
+
+From the command line:
+
+```bash
+uv run python scripts/train_tokenizer.py --input data/owt_train.txt
+```
+
+The script:
+
+- loads `bpe` settings from `config/default.yaml` or `--config`
+- calls the existing `train_bpe.train_bpe(...)` implementation
+- writes `bpe.vocab_path` and `bpe.merge_path` in the `tokenizer.from_files(...)` format
 
 ```python
 from tokenizer import train_bpe
