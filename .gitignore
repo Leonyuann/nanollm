@@ -3,3 +3,8 @@ __pycache__/
 .pytest_cache/
 
 data/
+src/nanollm.egg-info/
+
+
+.codex
+AGENTS.md
