@@ -149,9 +149,9 @@ bpe:
 The current implementation uses configuration in two places:
 
 - training uses `num_process`
-- runtime encoding currently reads `special_tokens` from `load_BPEConfig()`
+- runtime tokenizer instances use the `special_tokens` passed to the constructor or `from_files(...)`
 
-That second point is important: the `tokenizer` instance also stores `self.special_tokens`, but `encode(...)` currently consults the config file rather than the instance field. In practice, keep the runtime config aligned with the tokenizer you load.
+That second point is important: special tokens are runtime behavior, so the tokenizer you load should receive the same special token list that was used when the vocabulary was trained or assembled.
 
 ## Artifact Format
 

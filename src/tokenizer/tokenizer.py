@@ -1,6 +1,6 @@
+import re
 from tokenizer.types import Vocabulary, Merges
 from tokenizer.train_bpe import pretokenize
-from config_manager import load_BPEConfig
 from typing import TypeAlias
 from collections.abc import Iterable, Iterator
 
@@ -76,47 +76,71 @@ class tokenizer:
         Returns:
             A list of token IDs corresponding to the input string.
         """   
-        # Pre-tokenize the text, removing special tokens and building a pre-token list.
         envocab = self.encodevocab()
         text_encoded : list[int]= []
-        bpeconfig = load_BPEConfig()
-        words = pretokenize(text, bpeconfig.special_tokens)
+        special_token_set = set(self.special_tokens)
 
-        # For each pre-tokenized word, encode it into bytes and apply merges to get the final token IDs.
-        for word in words:
-            bytes_word = tuple(bytes([byte]) for byte in word.encode("utf-8"))
-            token : list[int]= []
+        for segment in self._split_text_with_special_tokens(text):
+            if segment in special_token_set:
+                text_encoded.append(envocab[segment.encode("utf-8")])
+                continue
 
-            # For each byte-pair in the word, merge it according to the merges list..
-            for merge in self.merges:
-                # If the word has fewer than 2 byte tokens, we can't merge any more pairs, so we break out of the loop.
-                lenth = len(bytes_word)
-                if lenth < 2:
-                    break
+            words = pretokenize(segment, [])
 
-                i = 0
-                while i < lenth - 1:
-                    if bytes_word[i] != merge[0]:
+            # For each pre-tokenized word, encode it into bytes and apply merges to get the final token IDs.
+            for word in words:
+                bytes_word = tuple(bytes([byte]) for byte in word.encode("utf-8"))
+                token : list[int]= []
+
+                # For each byte-pair in the word, merge it according to the merges list..
+                for merge in self.merges:
+                    # If the word has fewer than 2 byte tokens, we can't merge any more pairs, so we break out of the loop.
+                    lenth = len(bytes_word)
+                    if lenth < 2:
+                        break
+
+                    i = 0
+                    while i < lenth - 1:
+                        if bytes_word[i] != merge[0]:
+                            i += 1
+                            continue
+                        if bytes_word[i + 1] != merge[1]:
+                            i += 1
+                            continue
+
+                        # If the merge matches, replace the two tokens with the merged token.
+                        merged_token: bytes = merge[0] + merge[1]
+                        bytes_word = bytes_word[:i] + (merged_token,) + bytes_word[i + 2:]
+
+                        lenth -= 1
                         i += 1
-                        continue
-                    if bytes_word[i + 1] != merge[1]:
-                        i += 1
-                        continue
-
-                    # If the merge matches, replace the two tokens with the merged token.
-                    merged_token: bytes = merge[0] + merge[1]
-                    bytes_word = bytes_word[:i] + (merged_token,) + bytes_word[i + 2:]
-
-                    lenth -= 1
-                    i += 1
-                    
-            # After applying all merges, convert the final byte tokens to their corresponding token IDs in the vocab.
-            for byte_token in bytes_word:
-                token.append(envocab[byte_token])
-            
-            text_encoded = text_encoded + token
+                        
+                # After applying all merges, convert the final byte tokens to their corresponding token IDs in the vocab.
+                for byte_token in bytes_word:
+                    token.append(envocab[byte_token])
+                
+                text_encoded = text_encoded + token
 
         return text_encoded
+
+    def _split_text_with_special_tokens(
+        self,
+        text: str,
+    ) -> list[str]:
+        """
+        Split text while preserving configured special tokens.
+
+        Args:
+            text: The input string to split.
+
+        Returns:
+            A list of normal text segments and special token segments.
+        """
+        if not self.special_tokens:
+            return [text]
+
+        pattern = "|".join(re.escape(token) for token in sorted(self.special_tokens, key=len, reverse=True))
+        return [segment for segment in re.split(f"({pattern})", text) if segment]
     
     
     def encode_iterable(
