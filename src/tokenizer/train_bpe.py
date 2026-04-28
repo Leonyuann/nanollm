@@ -1,15 +1,51 @@
+"""Train byte-level Byte Pair Encoding (BPE) tokenizers.
+
+This module contains utilities for building a BPE vocabulary and merge list
+from raw text. It splits input files on special-token boundaries, pretokenizes
+text with a GPT-style regular expression, counts adjacent byte-pair
+frequencies, and repeatedly merges the highest-priority pair until the target
+vocabulary size is reached.
+
+The module only handles training artifacts. Runtime encoding, decoding, and
+loading serialized tokenizer files are implemented in ``tokenizer.py``.
+
+Typical usage example:
+    vocab, merges = train_bpe(
+        "data/input.txt",
+        vocab_size=10000,
+        special_tokens=["<|endoftext|>"],
+    )
+
+Functions:
+    find_chunk_boundaries: Split an input file into byte ranges aligned to a
+        special-token boundary.
+    uft8_vocab: Build the initial single-byte vocabulary.
+    remove_special_tokens: Split text around special tokens before
+        pretokenization.
+    pretokenize: Apply GPT-style regex pretokenization to a text chunk.
+    pretokenization_frequency_table: Count byte-tokenized pretoken frequencies.
+    count_pairs_in_word: Count adjacent byte pairs in one tokenized word.
+    merge_pair: Replace one adjacent pair with its merged byte token.
+    merge: Grow the vocabulary and merge list until the target size is reached.
+    train_bpe: Train a BPE vocabulary and merge list from an input file.
+"""
+
+
 import os
-import regex as re
-from typing import TypeAlias, BinaryIO
-from multiprocessing import Pool
 from collections import Counter, defaultdict
-from config_manager import BPEConfig, load_BPEConfig
+from multiprocessing import Pool
+from typing import TypeAlias, BinaryIO
+import regex as re
+
+
+from config_manager import load_BPEConfig
 from tokenizer.types import Vocabulary, Merges
 
 FrequencyTable: TypeAlias = dict[tuple[bytes, ...], int]
 PairCounts: TypeAlias = dict[tuple[bytes, bytes], int]
 PairLocations: TypeAlias = dict[tuple[bytes, bytes], set[tuple[bytes, ...]]]
 WordPairs: TypeAlias = dict[tuple[bytes, ...], Counter[tuple[bytes, bytes]]]
+
 
 def find_chunk_boundaries(
     file: BinaryIO,
@@ -20,7 +56,9 @@ def find_chunk_boundaries(
     Chunk the file into parts that can be counted independently.
     May return fewer chunks if the boundaries end up overlapping.
     """
-    assert isinstance(split_special_token, bytes), "Must represent special token as a bytestring"
+    assert isinstance(
+        split_special_token, bytes
+    ), "Must represent special token as a bytestring"
 
     # Get total file size in bytes
     file.seek(0, os.SEEK_END)
@@ -79,7 +117,7 @@ def remove_special_tokens(
     Args:
         text: The input text to be processed.
         special_tokens: A list of special tokens to be removed from the text.
-    
+
     Returns:
         A list of strings with the special tokens removed.
     """
@@ -92,25 +130,25 @@ def remove_special_tokens(
 def pretokenize(
     chunk: str,
     special_tokens: list[str],
-) ->  list[str]:
+) -> list[str]:
     """
     Pretokenize a chunk of the input file.
 
     Args:
         chunk: The chunk of text to be pretokenized.
         special_tokens: A list of special tokens acted as hard boundaries.
-    
+
     Returns:
         A list of pretokenized words from the chunk, with special tokens removed.
     """
     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
     pretokenization = []
-    
+
     ## Remove special tokens
     chunks = remove_special_tokens(chunk, special_tokens)
 
     for chunk in chunks:
-        words = re.finditer(PAT,chunk)
+        words = re.finditer(PAT, chunk)
         for word in words:
             pretokenization.append(word.group())
 
@@ -169,7 +207,7 @@ def merge_pair(
     new_word = []
     i = 0
     while i < len(word):
-        if i < len(word) - 1 and (word[i], word[i+1]) == pair:
+        if i < len(word) - 1 and (word[i], word[i + 1]) == pair:
             new_word.append(b"".join(pair))
             i += 2  # Skip the next token since it's part of the merged pair
         else:
@@ -179,9 +217,7 @@ def merge_pair(
 
 
 def merge(
-    vocab: Vocabulary,
-    fre_table: FrequencyTable,
-    vocab_size: int
+    vocab: Vocabulary, fre_table: FrequencyTable, vocab_size: int
 ) -> tuple[Vocabulary, Merges]:
     """
     Merge the most frequent token pairs until the desired vocabulary size is reached.
@@ -215,7 +251,7 @@ def merge(
         most_frequent_pair = max(pair_counts, key=lambda k: (pair_counts[k], k))
         if pair_counts[most_frequent_pair] <= 0:
             break
-        
+
         # Get the list of words affected by the most frequent pair
         affected_words = list(pair_locations.get(most_frequent_pair, set()))
         if not affected_words:
@@ -232,7 +268,7 @@ def merge(
             count = fre_table.pop(word, 0)
             if count == 0:
                 continue
-            
+
             # Get the old pairs and new pairs for the word after merging
             old_pairs = word_pairs.pop(word)
             new_word = merge_pair(most_frequent_pair, word)
@@ -257,7 +293,10 @@ def merge(
 
             # Update pair counts for all pairs that were affected by the merge
             for pair in old_pairs.keys() | new_pairs.keys():
-                new_count = pair_counts.get(pair, 0) + (new_pairs.get(pair, 0) - old_pairs.get(pair, 0)) * count
+                new_count = (
+                    pair_counts.get(pair, 0)
+                    + (new_pairs.get(pair, 0) - old_pairs.get(pair, 0)) * count
+                )
                 if new_count > 0:
                     pair_counts[pair] = new_count
                 else:
@@ -297,12 +336,14 @@ def train_bpe(
 
     # Find chunks of the input file that can be processed independently, split on special token boundaries
     with open(input_path, "rb") as f:
-        boundaries = find_chunk_boundaries(f, num_process, split_special_token=b"<|endoftext|>")
+        boundaries = find_chunk_boundaries(
+            f, num_process, split_special_token=b"<|endoftext|>"
+        )
 
         chunks = []
         for start, end in zip(boundaries[:-1], boundaries[1:]):
             f.seek(start)
-            chunks.append(f.read(end-start).decode("utf-8", errors="ignore"))
+            chunks.append(f.read(end - start).decode("utf-8", errors="ignore"))
 
     # Pretokenize each chunk in parallel, then build its frequency table
     with Pool(num_process) as pool:
@@ -310,7 +351,7 @@ def train_bpe(
             _chunk_frequency_table,
             [(chunk, special_tokens) for chunk in chunks],
         )
-    
+
     # Combine frequency tables from all chunks into a single frequency table
     fre_table: FrequencyTable = {}
     for word in fre_tables:
@@ -320,4 +361,3 @@ def train_bpe(
     vocab, merges = merge(vocab, fre_table, vocab_size)
 
     return vocab, merges
-    
