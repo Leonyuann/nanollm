@@ -1,5 +1,11 @@
 """ Basic module class for language models.
 
+This module implement personal basic moudle to substitute torch.nn.Linear 
+and torch.nn.Embedding.
+
+Class:
+    Linear: A linear module that mimics torch.nn.Linear, but only has weight and no bias.
+    Embedding: An embedding module that mimics torch.nn.Embedding.
 """
 
 import torch
@@ -33,6 +39,13 @@ class Linear(nn.Module):
         return x @ w_trans
     
 class Embedding(nn.Module):
+    """
+    My embedding moudle that mimics torch.nn.Embedding.
+
+        Attributes:
+        weight: The weight parameter of the embedding module, 
+        which contains the embeddings for each token ID.
+    """
     def __init__(
         self,
         num_embedings: int,
