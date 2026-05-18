@@ -10,6 +10,7 @@ from jaxtyping import Bool, Float, Int
 from torch import Tensor
 
 from tokenizer import train_bpe, tokenizer
+from model import module
 
 
 def run_linear(
@@ -31,8 +32,9 @@ def run_linear(
         Float[Tensor, "... d_out"]: The transformed output of your linear module.
     """
 
-    raise NotImplementedError
-
+    my_linear = module.linear(d_in, d_out)
+    my_linear.load_state_dict({"weight": weights})
+    return my_linear(in_features)
 
 def run_embedding(
     vocab_size: int,
