@@ -10,3 +10,6 @@ data:
   owt_valid_path: "data/owt_valid.txt"
   TinyStories_train_path: "data/TinyStoriesV2-GPT4-train.txt"
   TinyStories_valid_path: "data/TinyStoriesV2-GPT4-valid.txt"
+
+transformer:
+  RMSNorm_eps: 1e-5

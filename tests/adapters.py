@@ -89,7 +89,13 @@ def run_swiglu(
     # swiglu.w1.weight.data = w1_weight
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
-    raise NotImplementedError
+    my_swiglu = transformer.SwiGLU(d_model, d_ff)
+    my_swiglu.load_state_dict({
+        "gate.weight": w1_weight,
+        "up_project.weight": w3_weight,
+        "down_project.weight": w2_weight
+    })
+    return my_swiglu(in_features)
 
 
 def run_scaled_dot_product_attention(

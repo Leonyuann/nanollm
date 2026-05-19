@@ -18,6 +18,10 @@ class DataConfig:
     TinyStories_train_path: str
     TinyStories_valid_path: str
 
+@dataclass
+class TransformerConfig:
+    RMSNorm_eps: float
+
 def load_BPEConfig() -> BPEConfig:
     with open(config_path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
@@ -29,3 +33,10 @@ def load_DataConfig() -> DataConfig:
         config_data = yaml.safe_load(config_file)
     
     return DataConfig(**config_data["data"])
+
+def load_TransformerConfig() -> TransformerConfig:
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        config_data = yaml.safe_load(config_file)
+    
+    return TransformerConfig(**config_data["transformer"])
+
