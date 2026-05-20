@@ -37,8 +37,14 @@ class RMSNorm(torch.nn.Module):
         self,
         x: torch.Tensor
     ) -> torch.Tensor:
+        in_dtype = x.dtype
+        x = x.to(torch.float32)
+
         rms = torch.sqrt(einsum(x, x, "... d, ... d -> ...")/self.d_model + self.eps)
-        return self.gain * (x / rearrange(rms, '... -> ... 1'))
+        result = self.gain * (x / rearrange(rms, '... -> ... 1'))
+
+        # Return the result in the original dtype
+        return result.to(in_dtype)
         
         
 class SwiGLU(torch.nn.Module):
@@ -78,3 +84,67 @@ class SwiGLU(torch.nn.Module):
         up = gated_score * self.up_project(x)
         down = self.down_project(up)
         return down
+    
+
+class RotaryPositionalEmbedding(torch.nn.Module):
+    """
+    Implements Rotary Positional Embedding (RoPE) as described in the paper "RoFormer: Enhanced Transformer with Rotary Position Embedding".
+
+    Attributes:
+        theta: A base frequency for the rotary embeddings.
+        d_k: The dimension of the input features that will be rotated.
+        max_seq_len: The maximum sequence length for which the rotary embeddings will be precomputed.
+        cos_cached: A buffer that stores the precomputed cosine values for the rotary embeddings.
+        sin_cached: A buffer that stores the precomputed sine values for the rotary embeddings.
+    """
+    def __init__(
+        self,
+        theta: float,
+        d_k: int,
+        max_seq_len: int,
+        device: torch.device | None = None,
+    ): 
+        super().__init__()
+
+        assert d_k % 2 == 0, "d_k must be even for RoPE."
+
+        self.theta = theta
+        self.d_k = d_k
+        self.max_seq_len = max_seq_len
+
+        # Compute the inverse frequencies for the rotary embeddings
+        inv_freq = 1.0 / (theta ** (torch.arange(0, d_k, 2, device=device) / d_k))
+        positions = torch.arange(max_seq_len, device=device)
+        freqs = einsum(positions, inv_freq, "n, d -> n d")
+
+        self.register_buffer("cos_cached", freqs.cos(), persistent=False)
+        self.register_buffer("sin_cached", freqs.sin(), persistent=False)
+
+        
+    def forward(
+        self,
+        x: torch.Tensor,
+        token_positions: torch.Tensor
+    ) -> torch.Tensor:
+        
+        assert x.shape[-1] == self.d_k, (
+            f"Expected x.shape[-1] == {self.d_k}, got {x.shape[-1]}"
+        )
+
+        assert token_positions.max() < self.max_seq_len, (
+            f"token_positions exceed max_seq_len={self.max_seq_len}"
+        )
+
+        # 
+        cos = self.cos_cached[token_positions]
+        sin = self.sin_cached[token_positions]
+
+        x_routed = torch.empty_like(x)
+
+        x_even = x[..., 0::2]
+        x_odd = x[..., 1::2]
+
+        x_routed[..., 0::2] = cos * x_even - sin * x_odd
+        x_routed[..., 1::2] = sin * x_even + cos * x_odd
+        
+        return x_routed
