@@ -8,6 +8,7 @@ import numpy.typing as npt
 import torch
 from jaxtyping import Bool, Float, Int
 from torch import Tensor
+from einops import rearrange  
 
 from tokenizer import train_bpe, tokenizer
 from model import module, transformer
@@ -116,7 +117,7 @@ def run_scaled_dot_product_attention(
     Returns:
         Float[Tensor, " ... queries d_v"]: Output of SDPA
     """
-    return transformer.scaled_dot_prodect_attention(Q, K, V, mask)
+    return transformer.scaled_dot_prodoct_attention(Q, K, V, mask)
 
 
 def run_multihead_self_attention(
@@ -190,7 +191,13 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_model"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+    my_mha = transformer.MultiHeadSelfAttention(d_model, num_heads, theta, max_seq_len)
+    qkv_proj_weights = rearrange([q_proj_weight, k_proj_weight, v_proj_weight],
+                                 "k d_out d_model -> (k d_out) d_model")
+    my_mha.qkv_proj.load_state_dict({"weight": qkv_proj_weights})
+    my_mha.o_proj.load_state_dict({"weight": o_proj_weight})
+
+    return my_mha(in_features)
 
 
 def run_rope(

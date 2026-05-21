@@ -164,7 +164,7 @@ def softmax(
     return x_exp / x_exp_sum
 
 
-def scaled_dot_prodect_attention(
+def scaled_dot_prodoct_attention(
     Q: Float[torch.Tensor, " ... queries d_k"],
     K: Float[torch.Tensor, " ... keys d_k"],
     V: Float[torch.Tensor, " ... keys d_v"],
@@ -182,3 +182,84 @@ def scaled_dot_prodect_attention(
     attn_weights = softmax(scores, dim=-1)
     attn = einsum(attn_weights, V, "... q k, ... k d_v -> ... q d_v")
     return attn
+
+class MultiHeadSelfAttention(torch.nn.Module):
+    """
+    Implements multi-head self-attention with RoPE.
+
+    Attributes:
+        d_model: The dimension of the input features.
+        num_heads: The number of attention heads.
+        d_head: The dimension of each attention head, calculated as d_model // num_heads.
+        rope: An instance of the RotaryPositionalEmbedding class for applying RoPE to the query
+            and key tensors.
+        qkv_proj: A linear layer that projects the input features to the query, key,
+        
+    """
+    def __init__(
+        self,
+        d_model: int,
+        num_heads: int,
+        theta: float,
+        max_seq_len: int,
+    ):
+        super().__init__()
+
+        assert d_model % num_heads == 0, "d_model must be divisible by nums_heads."
+        
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_head = d_model // num_heads
+
+        self.rope = RotaryPositionalEmbedding(theta, d_k=self.d_head, max_seq_len=max_seq_len)
+        self.qkv_proj = module.Linear(d_model, 3 * d_model)
+        self.o_proj = module.Linear(d_model, d_model)
+
+    def multi_head(
+        self,
+        Q: Float[torch.Tensor, " ... queries d_model"],
+        K: Float[torch.Tensor, " ... keys d_model"],
+        V: Float[torch.Tensor, " ... keys d_model"],
+    ) -> Float[torch.Tensor, " ... queries d_model"]:
+        Q = rearrange(Q, "... q (h d) -> ... h q d", h = self.num_heads, d = self.d_head)
+        K = rearrange(K, "... k (h d) -> ... h k d", h = self.num_heads, d = self.d_head)
+        V = rearrange(V, "... v (h d) -> ... h v d", h = self.num_heads, d = self.d_head)
+
+        q_seq_len = Q.size(-2)
+        v_seq_len = V.size(-2)
+        # Generate token positions for Q and K
+        q_token_positions = torch.arange(q_seq_len)
+        k_token_positions = torch.arange(v_seq_len)
+
+        # Apply RoPE to Q and K
+        Q_rope = self.rope(Q, q_token_positions)
+        K_rope = self.rope(K, k_token_positions)
+
+        mask = torch.full((q_seq_len, v_seq_len), fill_value=True, dtype=torch.bool)
+        mask = ~torch.triu(mask, diagonal=1)
+
+        atten = scaled_dot_prodoct_attention(Q_rope, K_rope, V, mask)
+        atten = rearrange(atten, "... h q d -> ... q (h d)", h = self.num_heads, d = self.d_head)
+
+        return atten
+    
+    def forward(
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
+        
+        assert x.shape[-1] == self.d_model, (
+            f"Expected x.shape[-1] == {self.d_model}, got {x.shape[-1]}"
+        )
+
+        assert x.size(-2) <= self.rope.max_seq_len, (
+            f"Sequence length {x.size(-2)} exceeds max_seq_len={self.rope.max_seq_len}"
+        )
+        QKV = self.qkv_proj(x)
+        Q, K, V = rearrange(QKV, "... (k d_model) -> k ... d_model", k=3,d_model=self.d_model)
+
+        O = self.multi_head(Q, K, V)
+
+        return self.o_proj(O)
+
+    
