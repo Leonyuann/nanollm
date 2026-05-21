@@ -93,8 +93,8 @@ def run_swiglu(
     my_swiglu = transformer.SwiGLU(d_model, d_ff)
     my_swiglu.load_state_dict({
         "gate.weight": w1_weight,
-        "up_project.weight": w3_weight,
-        "down_project.weight": w2_weight
+        "up_proj.weight": w3_weight,
+        "down_proj.weight": w2_weight
     })
     return my_swiglu(in_features)
 
@@ -293,8 +293,26 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    my_transformer_block = transformer.TransformerBlock(d_model, num_heads, theta, max_seq_len, d_ff)
+    attn_q_proj_weight = weights["attn.q_proj.weight"]
+    attn_k_proj_weight = weights["attn.k_proj.weight"]
+    attn_v_proj_weight = weights["attn.v_proj.weight"]
 
+    attn_qkv_proj_weights = rearrange([attn_q_proj_weight, attn_k_proj_weight, attn_v_proj_weight],
+                                      "k d_out d_model -> (k d_out) d_model")
+    
+    my_weigths = {
+        "attn.qkv_proj.weight": attn_qkv_proj_weights,
+        "attn.o_proj.weight": weights["attn.output_proj.weight"],
+        "ln1.gain": weights["ln1.weight"],
+        "ffn.gate.weight": weights["ffn.w1.weight"],
+        "ffn.down_proj.weight": weights["ffn.w2.weight"],
+        "ffn.up_proj.weight": weights["ffn.w3.weight"],
+        "ln2.gain": weights["ln2.weight"]
+    }
+
+    my_transformer_block.load_state_dict(my_weigths)
+    return my_transformer_block(in_features)
 
 def run_transformer_lm(
     vocab_size: int,

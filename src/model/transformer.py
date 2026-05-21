@@ -73,8 +73,8 @@ class SwiGLU(torch.nn.Module):
         # TODO: make sure d_swiglu is an integer 
         # and a nearby multiple of 64 for hardware efficency
         self.gate = module.Linear(d_model, d_ff, device=device, dtype=dtype) 
-        self.up_project = module.Linear(d_model, d_ff, device=device, dtype=dtype)
-        self.down_project = module.Linear(d_ff, d_model, device=device, dtype=dtype)
+        self.up_proj = module.Linear(d_model, d_ff, device=device, dtype=dtype)
+        self.down_proj = module.Linear(d_ff, d_model, device=device, dtype=dtype)
         
 
     def forward(
@@ -83,8 +83,8 @@ class SwiGLU(torch.nn.Module):
     ) -> torch.Tensor:
         gate = self.gate(x)
         gated_score = gate * torch.sigmoid(gate)
-        up = gated_score * self.up_project(x)
-        down = self.down_project(up)
+        up = gated_score * self.up_proj(x)
+        down = self.down_proj(up)
         return down
     
 
@@ -262,4 +262,28 @@ class MultiHeadSelfAttention(torch.nn.Module):
 
         return self.o_proj(O)
 
-    
+class TransformerBlock(torch.nn.Module):
+    """
+    """
+
+    def __init__(
+        self, 
+        d_model: int,
+        num_heads: int,
+        theta: float,
+        max_seq_len: int,
+        d_ff: int,
+    ):
+        super().__init__()
+        self.ln1 = RMSNorm(d_model)
+        self.attn = MultiHeadSelfAttention(d_model, num_heads, theta, max_seq_len)
+        self.ln2 = RMSNorm(d_model)
+        self.ffn = SwiGLU(d_model, d_ff)
+
+    def forward(
+        self,
+        x: torch.Tensor
+    ) -> torch.Tensor:
+        x = x + self.attn(self.ln1(x))
+        x = x + self.ffn(self.ln2(x))
+        return x

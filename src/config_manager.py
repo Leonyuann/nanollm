@@ -39,4 +39,3 @@ def load_TransformerConfig() -> TransformerConfig:
         config_data = yaml.safe_load(config_file)
     
     return TransformerConfig(**config_data["transformer"])
-
