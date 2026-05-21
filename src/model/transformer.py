@@ -2,7 +2,9 @@
 """
 
 import torch
+import math
 from einops import einsum, rearrange
+from jaxtyping import Bool, Float, Int
 
 from config_manager import load_TransformerConfig
 from model import module
@@ -154,11 +156,29 @@ def softmax(
     dim: int,
 ) -> torch.Tensor:
     """
-    
+    Softmax implementation.
     """
     x_max = torch.max(x, dim=dim, keepdim=True).values
     x_exp = torch.exp(x - x_max)
     x_exp_sum = torch.sum(x_exp, dim=dim, keepdim=True)
     return x_exp / x_exp_sum
 
+
+def scaled_dot_prodect_attention(
+    Q: Float[torch.Tensor, " ... queries d_k"],
+    K: Float[torch.Tensor, " ... keys d_k"],
+    V: Float[torch.Tensor, " ... keys d_v"],
+    mask: Bool[torch.Tensor, " ... queries keys"] | None = None,
+) -> Float[torch.Tensor, " ... queries d_v"]:
+    """
+    Scaled dot-product attention implementation.
+    """
+    scores = einsum(Q, K, "... q d_k, ... k d_k -> ... q k")
+    scores = scores / math.sqrt(Q.size(-1))
+
+    if mask is not None:
+        scores = scores.masked_fill(mask == False, float("-inf"))
     
+    attn_weights = softmax(scores, dim=-1)
+    attn = einsum(attn_weights, V, "... q k, ... k d_v -> ... q d_v")
+    return attn
