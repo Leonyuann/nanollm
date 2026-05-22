@@ -393,7 +393,33 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    raise NotImplementedError
+    my_transformer_lm = transformer.TransformerLM(vocab_size,context_length, num_layers, 
+                                                  d_model, num_heads, d_ff, rope_theta)
+    
+    for layer in range(num_layers):
+        attn_q_proj_weight = weights[f"layers.{layer}.attn.q_proj.weight"]
+        attn_k_proj_weight = weights[f"layers.{layer}.attn.k_proj.weight"]
+        attn_v_proj_weight = weights[f"layers.{layer}.attn.v_proj.weight"]
+
+        attn_qkv_proj_weights = rearrange([attn_q_proj_weight, attn_k_proj_weight, attn_v_proj_weight],
+                                        "k d_out d_model -> (k d_out) d_model")
+        
+        my_weights = {
+            f"attn.qkv_proj.weight": attn_qkv_proj_weights,
+            f"attn.o_proj.weight": weights[f"layers.{layer}.attn.output_proj.weight"],
+            f"ln1.gain": weights[f"layers.{layer}.ln1.weight"],
+            f"ffn.gate.weight": weights[f"layers.{layer}.ffn.w1.weight"],
+            f"ffn.down_proj.weight": weights[f"layers.{layer}.ffn.w2.weight"],
+            f"ffn.up_proj.weight": weights[f"layers.{layer}.ffn.w3.weight"],
+            f"ln2.gain": weights[f"layers.{layer}.ln2.weight"]
+        }
+        my_transformer_lm.layers[layer].load_state_dict(my_weights)
+
+    my_transformer_lm.token_embeddings.load_state_dict({"weight": weights["token_embeddings.weight"]})
+    my_transformer_lm.ln_final.load_state_dict({"gain": weights["ln_final.weight"]})
+    my_transformer_lm.lm_head.load_state_dict({"weight": weights["lm_head.weight"]})
+
+    return my_transformer_lm(in_indices)
 
 
 def run_rmsnorm(

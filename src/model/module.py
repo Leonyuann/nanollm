@@ -42,7 +42,7 @@ class Embedding(nn.Module):
     """
     My embedding moudle that mimics torch.nn.Embedding.
 
-        Attributes:
+    Attributes:
         weight: The weight parameter of the embedding module, 
         which contains the embeddings for each token ID.
     """

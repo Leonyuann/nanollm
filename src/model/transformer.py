@@ -264,6 +264,16 @@ class MultiHeadSelfAttention(torch.nn.Module):
 
 class TransformerBlock(torch.nn.Module):
     """
+    Implements a single block of the Transformer architecture.
+
+    Attributes:
+        ln1: normalization layer applied before the self-attention mechanism.
+        attn: An instance of the MultiHeadSelfAttention class that implements the self-attention
+            mechanism.
+        ln2: normalization layer applied before the feed-forward network.
+        ffn: An instance of the SwiGLU class that implements the feed-forward network.
+    
+
     """
 
     def __init__(
@@ -287,3 +297,48 @@ class TransformerBlock(torch.nn.Module):
         x = x + self.attn(self.ln1(x))
         x = x + self.ffn(self.ln2(x))
         return x
+    
+class TransformerLM(torch.nn.Module):
+    """
+    """
+
+    def __init__(
+        self,
+        vocab_size: int,
+        context_length: int,
+        num_layers: int,
+        d_model: int,
+        num_heads: int,
+        d_ff: int,
+        rope_theta: float,
+    ): 
+        super().__init__()
+
+        self.vocab_size = vocab_size
+        self.context_length = context_length
+        self.num_layers = num_layers
+        self.d_model = d_model
+
+        self.token_embeddings = module.Embedding(vocab_size, d_model)
+        self.layers = torch.nn.ModuleList(
+            [TransformerBlock(d_model=d_model, num_heads=num_heads, theta=rope_theta,
+                max_seq_len=context_length, d_ff=d_ff) for i in range(num_layers)]
+        )
+
+        self.ln_final = RMSNorm(d_model)
+        self.lm_head = module.Linear(d_model, vocab_size)
+
+    def forward(
+        self,
+        x: torch.Tensor
+    ) -> torch.Tensor:
+        hidden_states = self.token_embeddings(x)
+
+        for transformer_block in self.layers:
+            hidden_states = transformer_block(hidden_states)
+        
+        hidden_states = self.ln_final(hidden_states)
+        logits = self.lm_head(hidden_states)
+
+        return logits
+
