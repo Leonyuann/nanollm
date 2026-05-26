@@ -12,7 +12,7 @@ from einops import rearrange
 
 from tokenizer import train_bpe, tokenizer
 from model import module, transformer
-from training import loss
+from training import loss, optimizer
 
 
 def run_linear(
@@ -535,7 +535,7 @@ def get_adamw_cls() -> Any:
     """
     Returns a torch.optim.Optimizer that implements AdamW.
     """
-    raise NotImplementedError
+    return optimizer.AdamW
 
 
 def run_get_lr_cosine_schedule(

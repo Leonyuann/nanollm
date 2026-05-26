@@ -22,6 +22,15 @@ class DataConfig:
 class TransformerConfig:
     RMSNorm_eps: float
 
+@dataclass
+class AdamWConfig:
+    lr: float
+    beta1: float
+    beta2: float
+    weight_decay: float
+    eps: float
+
+
 def load_BPEConfig() -> BPEConfig:
     with open(config_path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
@@ -39,3 +48,9 @@ def load_TransformerConfig() -> TransformerConfig:
         config_data = yaml.safe_load(config_file)
     
     return TransformerConfig(**config_data["transformer"])
+
+def load_AdamWConfig() -> AdamWConfig:
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        config_data = yaml.safe_load(config_file)
+
+    return AdamWConfig(**config_data["adamw"])

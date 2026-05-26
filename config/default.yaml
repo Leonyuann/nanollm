@@ -13,3 +13,10 @@ data:
 
 transformer:
   RMSNorm_eps: 0.00001
+
+adamw:
+  lr: 0.001
+  beta1: 0.9
+  beta2: 0.95
+  weight_decay: 
+  eps: 0.00000001
