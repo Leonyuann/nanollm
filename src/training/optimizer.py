@@ -1,4 +1,17 @@
 """ Optimizer implementations.
+This module contains implementations of optimization algorithms and learning rate schedules commonly used in
+training deep learning models. The optimizers include stochastic gradient descent (SGD) and AdamW, while the 
+learning rate schedule is a cosine annealing schedule with linear warmup. Additionally, a function for 
+gradient clipping is provided to prevent exploding gradients during training.
+
+Classes:
+    SGD: A simple implementation of stochastic gradient descent optimizer.
+    AdamW: A simple implementation of AdamW optimizer without bias correction.
+
+Functions:
+    cosine_learning_lr_schedule: Computes the learning rate at a given iteration using a cosine annealing
+        schedule with linear warmup.
+    gradient_clipping: Clips the gradients of the given parameters to have a maximum L2 norm.
 """
 from collections.abc import Callable, Iterable
 from typing import Optional
@@ -126,6 +139,16 @@ def cosine_learning_lr_schedule(
     t_w: int,
     t_c: int,
 ) -> float:
+    """
+    Cosine anealing learning rate schedule with linear warmup.
+
+    Args:
+        step: Current iteration number (must be non-negative).
+        max_lr: Maximum learning rate (must be positive).
+        min_lr: Minimum learning rate (must be non-negative).
+        t_w: Number of warmup iterations (must be non-negative).    
+        t_c: Number of iterations in one cosine cycle (must be non-negative).
+    """
     if step < 0 :
         raise ValueError(f"lr_schedule: Invalid parameter value: step = {step}")
     if max_lr <= 0 :                                    
@@ -146,6 +169,17 @@ def cosine_learning_lr_schedule(
     return lr   
 
 def gradient_clipping(parameters: Iterable[torch.nn.Parameter] , max_l2_norm: float) -> None:
+    """
+    Clips the gradients of the given parameters to have a maximum L2 norm.
+
+    Args:
+        parameters: An iterable of parameters whose gradients will be clipped.
+        max_l2_norm: The maximum allowed L2 norm of the all-sumed gradients. Must be non-negative.
+    Raises:
+        ValueError: If `max_l2_norm` is negative.
+    """
+    assert max_l2_norm >= 0, f"Invalid parameter value: max_l2_norm = {max_l2_norm}"
+
     eps = 1e-6
 
     total_l2_norm_squre = 0.0
