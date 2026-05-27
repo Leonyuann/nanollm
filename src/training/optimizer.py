@@ -119,4 +119,28 @@ class AdamW(torch.optim.Optimizer):
         return loss
 
 
-
+def cosine_learning_lr_schedule(
+    step: int,
+    max_lr: float,
+    min_lr: float,
+    t_w: int,
+    t_c: int,
+) -> float:
+    if step < 0 :
+        raise ValueError(f"lr_schedule: Invalid parameter value: step = {step}")
+    if max_lr <= 0 :                                    
+        raise ValueError(f"lr_schedule: Invalid parameter value: max_lr = {max_lr}")
+    if min_lr < 0 :                                                             
+        raise ValueError(f"lr_schedule: Invalid parameter value: min_lr = {min_lr}")
+    if t_w < 0 :
+        raise ValueError(f"lr_schedule: Invalid parameter value: t_w = {t_w}")
+    if t_c < 0 :
+        raise ValueError(f"lr_schedule: Invalid parameter value: t_c = {t_c}")
+    
+    if step < t_w :
+        lr = max_lr * step / t_w
+    elif step <= t_c :
+        lr = min_lr + (1/2) * (max_lr - min_lr) * (1 + math.cos(math.pi * (step - t_w) / (t_c - t_w)))
+    else :
+        lr = min_lr 
+    return lr   
