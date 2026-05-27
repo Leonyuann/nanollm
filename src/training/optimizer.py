@@ -144,3 +144,31 @@ def cosine_learning_lr_schedule(
     else :
         lr = min_lr 
     return lr   
+
+def gradient_clipping(parameters: Iterable[torch.nn.Parameter] , max_l2_norm: float) -> None:
+    eps = 1e-6
+
+    total_l2_norm_squre = 0.0
+    for para in parameters :
+        if para.grad is None:
+            continue
+
+        total_l2_norm_squre += torch.sum(para.grad.pow(2))
+
+    total_l2_norm = torch.sqrt(total_l2_norm_squre)
+    if total_l2_norm <= max_l2_norm :
+        return
+    
+    scale = max_l2_norm /(total_l2_norm + eps)
+    for para in parameters :
+        if para.grad is None :
+            continue
+        para.grad.mul_(scale)
+
+    return
+
+
+
+
+
+
