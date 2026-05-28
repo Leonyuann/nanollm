@@ -12,7 +12,7 @@ from einops import rearrange
 
 from tokenizer import train_bpe, tokenizer
 from model import module, transformer
-from training import loss, optimizer
+from training import loss, optimizer, data
 
 
 def run_linear(
@@ -482,7 +482,7 @@ def run_get_batch(
         is the sampled input sequences, and the second tuple item is the corresponding
         language modeling labels.
     """
-    raise NotImplementedError
+    return data.data_loading(dataset, batch_size, context_length, device)
 
 
 def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
