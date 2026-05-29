@@ -20,3 +20,14 @@ adamw:
   beta2: 0.95
   weight_decay: 
   eps: 0.00000001
+
+model:
+  vocab_size: 1000
+  context_length: 512
+  num_layers: 12 
+  d_model: 2048
+  num_heads: 8
+  d_ff: 256
+  rope_theta: 10
+  device: None
+  dtype: None

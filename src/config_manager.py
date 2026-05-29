@@ -1,5 +1,6 @@
 import yaml
 from dataclasses import dataclass
+import torch
 
 config_path: str = "config/default.yaml"
 
@@ -30,6 +31,17 @@ class AdamWConfig:
     weight_decay: float
     eps: float
 
+@dataclass
+class ModelConfig:
+    vocab_size: int
+    context_length: int
+    num_layers: int
+    d_model: int
+    num_heads: int
+    d_ff: int
+    rope_theta: float
+    device: torch.device | None
+    dtype: torch.dtype | None
 
 def load_BPEConfig() -> BPEConfig:
     with open(config_path, "r", encoding="utf-8") as config_file:
@@ -54,3 +66,21 @@ def load_AdamWConfig() -> AdamWConfig:
         config_data = yaml.safe_load(config_file)
 
     return AdamWConfig(**config_data["adamw"])
+
+def load_ModelConfig() -> ModelConfig:
+    """Load model hyperparameters from the default YAML config.
+
+    Returns:
+        ModelConfig: Model configuration with PyTorch device and dtype values.
+    """
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        config_data = yaml.safe_load(config_file)
+
+    model_config = dict(config_data["model"])
+    device = model_config.get("device")
+    dtype = model_config.get("dtype")
+
+    model_config["device"] = None if device in (None, "None") else torch.device(device)
+    model_config["dtype"] = None if dtype in (None, "None") else getattr(torch, dtype)
+
+    return ModelConfig(**model_config)
