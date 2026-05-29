@@ -202,6 +202,8 @@ class MultiHeadSelfAttention(torch.nn.Module):
         num_heads: int,
         theta: float,
         max_seq_len: int,
+        device: torch.device | None = None,
+        dtype: torch.dtype | None = None,
     ):
         super().__init__()
 
@@ -211,9 +213,14 @@ class MultiHeadSelfAttention(torch.nn.Module):
         self.num_heads = num_heads
         self.d_head = d_model // num_heads
 
-        self.rope = RotaryPositionalEmbedding(theta, d_k=self.d_head, max_seq_len=max_seq_len)
-        self.qkv_proj = module.Linear(d_model, 3 * d_model)
-        self.o_proj = module.Linear(d_model, d_model)
+        self.rope = RotaryPositionalEmbedding(
+            theta = theta, 
+            d_k = self.d_head, 
+            max_seq_len = max_seq_len,
+            device = device,
+        )
+        self.qkv_proj = module.Linear(d_model, 3 * d_model, device, dtype)
+        self.o_proj = module.Linear(d_model, d_model, device, dtype)
 
     def multi_head(
         self,
@@ -283,12 +290,21 @@ class TransformerBlock(torch.nn.Module):
         theta: float,
         max_seq_len: int,
         d_ff: int,
+        device: torch.device | None = None,
+        dtype: torch.dtype | None = None,
     ):
         super().__init__()
-        self.ln1 = RMSNorm(d_model)
-        self.attn = MultiHeadSelfAttention(d_model, num_heads, theta, max_seq_len)
-        self.ln2 = RMSNorm(d_model)
-        self.ffn = SwiGLU(d_model, d_ff)
+        self.ln1 = RMSNorm(d_model, device, dtype)
+        self.attn = MultiHeadSelfAttention(
+            d_model = d_model,
+            num_heads = num_heads,
+            theta = theta, 
+            max_seq_len = max_seq_len,
+            device = device,
+            dtype = dtype,
+        )
+        self.ln2 = RMSNorm(d_model, device, dtype)
+        self.ffn = SwiGLU(d_model, d_ff, device ,dtype)
 
     def forward(
         self,
@@ -311,6 +327,8 @@ class TransformerLM(torch.nn.Module):
         num_heads: int,
         d_ff: int,
         rope_theta: float,
+        device: torch.device | None = None,
+        dtype: torch.dtype | None = None,
     ): 
         super().__init__()
 
@@ -319,14 +337,21 @@ class TransformerLM(torch.nn.Module):
         self.num_layers = num_layers
         self.d_model = d_model
 
-        self.token_embeddings = module.Embedding(vocab_size, d_model)
+        self.token_embeddings = module.Embedding(vocab_size, d_model, device ,dtype)
         self.layers = torch.nn.ModuleList(
-            [TransformerBlock(d_model=d_model, num_heads=num_heads, theta=rope_theta,
-                max_seq_len=context_length, d_ff=d_ff) for i in range(num_layers)]
+            [TransformerBlock(
+                d_model = d_model, 
+                num_heads = num_heads, 
+                theta = rope_theta,
+                max_seq_len = context_length, 
+                d_ff = d_ff,
+                device = device,
+                dtype = dtype,
+            ) for i in range(num_layers)]
         )
 
-        self.ln_final = RMSNorm(d_model)
-        self.lm_head = module.Linear(d_model, vocab_size)
+        self.ln_final = RMSNorm(d_model, device, dtype)
+        self.lm_head = module.Linear(d_model, vocab_size, device , dtype)
 
     def forward(
         self,
