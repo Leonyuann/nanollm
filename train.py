@@ -2,14 +2,13 @@ import os
 
 import torch
 import argparse
-import wandb 
 import numpy as np
-
 from loguru import logger
+
 from model import module, transformer
 from training import loss, optimizer, data, checkpoint
 from config_manager import load_ModelConfig, load_AdamWConfig, load_DataConfig, load_TrainingConfig
-
+from logger import WandbLogger
 
 def parse_args() -> argparse.Namespace:
     model_config = load_ModelConfig()
@@ -47,15 +46,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--save_every", type=int, default=training_config.save_every)
     parser.add_argument("--save_dir", type=str, default=training_config.save_dir)
     parser.add_argument("--batch_size", type=str, default=training_config.batch_size)
+    parser.add_argument("--use_wandb", type=bool, default=True)
     
     return parser.parse_args()
 
 def train(args):
-
-    logger.info(f"Starting training with the arguments")
-    for k, v in vars(args).items():
-        logger.info(f"{k:30} {v}")
-    logger.info("*" * 40)
 
     model = transformer.TransformerLM(
         vocab_size= args.vocab_size,
