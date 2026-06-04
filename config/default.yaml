@@ -31,3 +31,10 @@ model:
   rope_theta: 10
   device: None
   dtype: None
+
+training:
+  steps: 1000
+  eval_every: 100
+  save_every: 100
+  save_dir: "./output"
+  batch_size: 4

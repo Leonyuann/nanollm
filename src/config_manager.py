@@ -43,6 +43,14 @@ class ModelConfig:
     device: torch.device | None
     dtype: torch.dtype | None
 
+@dataclass
+class TrainingConfig:
+    training_step: int
+    eval_every: int
+    save_every: int
+    save_dir: str
+    batch_size: int
+
 def load_BPEConfig() -> BPEConfig:
     with open(config_path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
@@ -84,3 +92,9 @@ def load_ModelConfig() -> ModelConfig:
     model_config["dtype"] = None if dtype in (None, "None") else getattr(torch, dtype)
 
     return ModelConfig(**model_config)
+
+def load_TrainingConfig() -> TrainingConfig:
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        config_data = yaml.safe_load(config_file)
+    
+    return TrainingConfig(**config_data["training"])
