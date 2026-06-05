@@ -1,15 +1,16 @@
 bpe:
-  num_process: 4
-  vocab_size: 10000
+  num_process: 8
+  vocab_size: 32000
   special_tokens: ["<|endoftext|>"]
-  vocab_path: "outputs/artifacts/vocab.txt"
-  merge_path: "outputs/artifacts/merges.txt"
+  vocab_path: "outputs/artifacts/TinyStory_vocab.txt"
+  merge_path: "outputs/artifacts/TinyStory_merges.txt"
 
 data:
   owt_train_path: "data/owt_train.txt"
   owt_valid_path: "data/owt_valid.txt"
-  TinyStories_train_path: "data/TinyStoriesV2-GPT4-train.txt"
-  TinyStories_valid_path: "data/TinyStoriesV2-GPT4-valid.txt"
+  TinyStories_train_path: "/xts001/TinyStoriesV2-GPT4-train.txt"
+  TinyStories_valid_path: "/xts001/TinyStoriesV2-GPT4-valid.txt"
+  training_token_path: "/xts001/training_tokens.txt"
 
 transformer:
   RMSNorm_eps: 0.00001

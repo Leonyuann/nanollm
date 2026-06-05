@@ -78,8 +78,8 @@ def train(args):
     global_step = 0
 
     # Lazy-load data
-    training_data = np.memmap(args.training_data_path, dtype=int, mode='r')
-    eval_data = np.memmap(args.eval_data_path, dtype=int, mpde='r')
+    training_data = np.memmap(args.training_data_path, dtype=np.uint16, mode='r')
+    eval_data = np.memmap(args.eval_data_path, dtype=np.uint16, mode='r')
 
     while global_step < args.total_step:
         batch = data.data_loading(training_data, args.batch_size, args.context_length, args.device)
