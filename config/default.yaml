@@ -6,11 +6,12 @@ bpe:
   merge_path: "outputs/artifacts/TinyStory_merges.txt"
 
 data:
-  owt_train_path: "data/owt_train.txt"
-  owt_valid_path: "data/owt_valid.txt"
-  TinyStories_train_path: "/xts001/TinyStoriesV2-GPT4-train.txt"
-  TinyStories_valid_path: "/xts001/TinyStoriesV2-GPT4-valid.txt"
-  training_token_path: "/xts001/training_tokens.txt"
+  owt_train_path: "/xts001/data/owt_train.txt"
+  owt_valid_path: "/xts001/data/owt_valid.txt"
+  TinyStories_train_path: "/xts001/data/TinyStoriesV2-GPT4-train.txt"
+  TinyStories_valid_path: "/xts001/data/TinyStoriesV2-GPT4-valid.txt"
+  training_data_path: "/xts001/data/training_data"
+  evaluation_data_path: "/xts001/data/evaluation_data"
 
 transformer:
   RMSNorm_eps: 0.00001

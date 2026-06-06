@@ -18,7 +18,8 @@ class DataConfig:
     owt_valid_path: str
     TinyStories_train_path: str
     TinyStories_valid_path: str
-    training_token_path: str
+    training_data_path: str
+    evaluation_data_path: str
 
 @dataclass
 class TransformerConfig:
