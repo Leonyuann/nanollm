@@ -54,7 +54,9 @@ This is close to the mental model used by modern BPE tokenizers, while staying s
 
 ## Training Pipeline
 
-The training entry point is `train_bpe(input_path, vocab_size, special_tokens)`.
+The training entry point is
+`train_bpe(input_path, vocab_size, special_tokens, show_progress=False)`.
+The training script reports only BPE merge progress with `tqdm`.
 
 ### Step 1: Initialize the vocabulary
 
@@ -71,7 +73,7 @@ This means special tokens exist in the learned vocabulary. However, the current 
 
 `find_chunk_boundaries(...)` divides the input file into roughly even byte ranges for multiprocessing. The boundaries are adjusted so they land on the next occurrence of a split token, currently `b"<|endoftext|>"`.
 
-This avoids counting across document boundaries when the corpus contains that delimiter.
+This avoids counting across document boundaries when the corpus contains that delimiter. Workers receive byte ranges and read their chunks directly from the corpus, so the parent process does not retain or serialize the full decoded chunks.
 
 ### Step 3: Pretokenize each chunk
 

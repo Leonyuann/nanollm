@@ -1,6 +1,5 @@
 import yaml
 from dataclasses import dataclass
-import torch
 
 config_path: str = "config/default.yaml"
 
@@ -42,8 +41,8 @@ class ModelConfig:
     num_heads: int
     d_ff: int
     rope_theta: float
-    device: torch.device | None
-    dtype: torch.dtype | None
+    device: str
+    dtype: str
 
 @dataclass
 class TrainingConfig:
@@ -86,14 +85,7 @@ def load_ModelConfig() -> ModelConfig:
     with open(config_path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
 
-    model_config = dict(config_data["model"])
-    device = model_config.get("device")
-    dtype = model_config.get("dtype")
-
-    model_config["device"] = None if device in (None, "None") else torch.device(device)
-    model_config["dtype"] = None if dtype in (None, "None") else getattr(torch, dtype)
-
-    return ModelConfig(**model_config)
+    return ModelConfig(**config_data["model"])
 
 def load_TrainingConfig() -> TrainingConfig:
     with open(config_path, "r", encoding="utf-8") as config_file:

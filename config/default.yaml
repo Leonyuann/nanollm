@@ -2,8 +2,8 @@ bpe:
   num_process: 8
   vocab_size: 32000
   special_tokens: ["<|endoftext|>"]
-  vocab_path: "outputs/artifacts/TinyStory_vocab.txt"
-  merge_path: "outputs/artifacts/TinyStory_merges.txt"
+  vocab_path: "outputs/artifacts/vocab.txt"
+  merge_path: "outputs/artifacts/merges.txt"
 
 data:
   owt_train_path: "/xts001/data/owt_train.txt"
