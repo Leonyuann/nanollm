@@ -58,6 +58,10 @@ class tokenizer:
         merges: A list of byte pairs that should be merged during encoding.
         special_tokens: A list of special tokens that should be treated as hard boundaries during 
         pretokenization.
+        merge_ranks: A dictionary mapping byte pairs to their rank in the merges list, used for
+        quickly finding the order of merges.
+        encode_vocab: A dictionary mapping byte tokens to their corresponding token IDs, used for
+        encoding text into token IDs.
     """
 
     def __init__(
@@ -68,7 +72,18 @@ class tokenizer:
     ):
         self.vocab = vocab
         self.merges = merges
+
         self.special_tokens = special_tokens or []
+
+        self.merge_ranks = {
+            pair: rank
+            for rank, pair in enumerate(merges)
+        }
+
+        self.encode_vocab ={
+            token: idx 
+            for idx, token in self.vocab.items()
+        }
 
     @classmethod
     def from_files(
@@ -121,13 +136,12 @@ class tokenizer:
         Returns:
             A list of token IDs corresponding to the input string.
         """
-        envocab = self.encodevocab()
         text_encoded: list[int] = []
         special_token_set = set(self.special_tokens)
 
         for segment in self._split_text_with_special_tokens(text):
             if segment in special_token_set:
-                text_encoded.append(envocab[segment.encode("utf-8")])
+                text_encoded.append(self.encode_vocab[segment.encode("utf-8")])
                 continue
 
             words = pretokenize(segment, [])
@@ -135,39 +149,14 @@ class tokenizer:
             # For each pre-tokenized word, encode it into bytes and apply merges to get the
             # final token IDs.
             for word in words:
-                bytes_word = tuple(bytes([byte]) for byte in word.encode("utf-8"))
                 token: list[int] = []
-
-                # For each byte-pair in the word, merge it according to the merges list..
-                for merge in self.merges:
-                    # If the word has fewer than 2 byte tokens, we can't merge any more pairs,
-                    # so we break out of the loop.
-                    lenth = len(bytes_word)
-                    if lenth < 2:
-                        break
-
-                    i = 0
-                    while i < lenth - 1:
-                        if bytes_word[i] != merge[0]:
-                            i += 1
-                            continue
-                        if bytes_word[i + 1] != merge[1]:
-                            i += 1
-                            continue
-
-                        # If the merge matches, replace the two tokens with the merged token.
-                        merged_token: bytes = merge[0] + merge[1]
-                        bytes_word = (
-                            bytes_word[:i] + (merged_token,) + bytes_word[i + 2 :]
-                        )
-
-                        lenth -= 1
-                        i += 1
+                
+                bytes_word = self._encode_a_word(word)
 
                 # After applying all merges, convert the final byte tokens to their corresponding
                 # token IDs in the vocab.
                 for byte_token in bytes_word:
-                    token.append(envocab[byte_token])
+                    token.append(self.encode_vocab[byte_token])
 
                 text_encoded = text_encoded + token
 
@@ -225,8 +214,58 @@ class tokenizer:
         for token in ids:
             decode_bytes += self.vocab[token]
         return decode_bytes.decode("utf-8", errors="replace")
-
-    def encodevocab(
+    
+    def _encode_a_word (
         self,
-    ) -> EncodeVocabulary:
-        return {token: idx for idx, token in self.vocab.items()}
+        word: str,
+    ) -> tuple[int]:
+        bytes_word = tuple(bytes([byte]) for byte in word.encode("utf-8"))
+
+        while len(bytes_word) > 1:
+            prior_pair = None
+            prior_rank = float("inf")
+
+            for pair in zip(bytes_word, bytes_word[1:]):
+                rank = self.merge_ranks.get(pair)
+
+                if rank is not None and rank < prior_rank:
+                    prior_rank = rank
+                    prior_pair = pair
+
+            if prior_pair is None:
+                break
+
+            bytes_word = self._pair_merge(prior_pair, bytes_word)
+
+        return bytes_word
+
+            
+    def _pair_merge(
+        self,
+        merge: tuple[bytes, bytes],
+        word: tuple[bytes],
+    ) -> tuple[bytes]:
+        # If the word has fewer than 2 byte tokens, we can't merge any more pairs,
+        # so we break out
+        lenth = len(word)
+        if lenth < 2:
+            return word
+
+        i = 0
+        while i < lenth - 1:
+            if word[i] != merge[0]:
+                i += 1
+                continue
+            if word[i + 1] != merge[1]:
+                i += 1
+                continue
+
+            # If the merge matches, replace the two tokens with the merged token.
+            merged_token: bytes = merge[0] + merge[1]
+            word = (word[:i] + (merged_token,) + word[i + 2 :])
+
+            lenth -= 1
+            i += 1
+
+        return word
+                    
