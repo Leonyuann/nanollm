@@ -43,3 +43,23 @@ def cross_entropy(
     target_logits = rearrange(target_logits, "... 1 -> ...")
 
     return torch.mean(sum_log_exp - target_logits)
+
+def perplexity(
+    logits: Float[Tensor,"... seq_len vocab_size"],
+    target: Int[Tensor, "... seq_len"]
+) -> Float[Tensor,""]:
+    """
+    Args:
+        logits: Unnormalized class scores with vocabulary size on the final
+            dimension.
+        target: Index of the correct class for each example. Its shape must
+            match `logits.shape[:-1]`.
+    Returns:
+        Exponential of the average negative log likelihood across all target
+        positions.
+    Raises:
+        ValueError: If `logits` has no class dimension or `target` does not
+            match the leading dimensions of `logits`.
+
+    """
+    return torch.exp(cross_entropy(logits, target))
