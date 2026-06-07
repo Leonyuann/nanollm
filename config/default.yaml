@@ -24,19 +24,20 @@ adamw:
   eps: 0.00000001
 
 model:
-  vocab_size: 1000
+  vocab_size: 32000
   context_length: 512
   num_layers: 12 
   d_model: 2048
   num_heads: 8
   d_ff: 256
   rope_theta: 10
-  device: None
-  dtype: None
+  device: cuda
+  dtype: null
 
 training:
-  steps: 1000
+  training_step: 1000
   eval_every: 100
   save_every: 100
   save_dir: "./output"
   batch_size: 4
+  use_wandb: true

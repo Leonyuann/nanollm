@@ -212,6 +212,7 @@ class MultiHeadSelfAttention(torch.nn.Module):
         self.d_model = d_model
         self.num_heads = num_heads
         self.d_head = d_model // num_heads
+        self.device = device
 
         self.rope = RotaryPositionalEmbedding(
             theta = theta, 
@@ -242,7 +243,7 @@ class MultiHeadSelfAttention(torch.nn.Module):
         Q_rope = self.rope(Q, q_token_positions)
         K_rope = self.rope(K, k_token_positions)
 
-        mask = torch.full((q_seq_len, v_seq_len), fill_value=True, dtype=torch.bool)
+        mask = torch.full((q_seq_len, v_seq_len), fill_value=True, dtype=torch.bool, device=self.device)
         mask = ~torch.triu(mask, diagonal=1)
 
         atten = scaled_dot_prodoct_attention(Q_rope, K_rope, V, mask)
@@ -294,7 +295,7 @@ class TransformerBlock(torch.nn.Module):
         dtype: torch.dtype | None = None,
     ):
         super().__init__()
-        self.ln1 = RMSNorm(d_model, device, dtype)
+        self.ln1 = RMSNorm(d_model, device=device, dtype=dtype)
         self.attn = MultiHeadSelfAttention(
             d_model = d_model,
             num_heads = num_heads,
@@ -303,7 +304,7 @@ class TransformerBlock(torch.nn.Module):
             device = device,
             dtype = dtype,
         )
-        self.ln2 = RMSNorm(d_model, device, dtype)
+        self.ln2 = RMSNorm(d_model, device=device, dtype=dtype)
         self.ffn = SwiGLU(d_model, d_ff, device ,dtype)
 
     def forward(
@@ -350,7 +351,7 @@ class TransformerLM(torch.nn.Module):
             ) for i in range(num_layers)]
         )
 
-        self.ln_final = RMSNorm(d_model, device, dtype)
+        self.ln_final = RMSNorm(d_model, device=device, dtype=dtype)
         self.lm_head = module.Linear(d_model, vocab_size, device , dtype)
 
     def forward(

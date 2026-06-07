@@ -3,6 +3,7 @@
 __pycache__/
 .pytest_cache/
 
+wandb/
 outputs/
 data/
 src/nanollm.egg-info/

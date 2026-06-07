@@ -35,20 +35,21 @@ class WandbLogger:
             step=step,
         )
 
-    def eval_log(self, loss, step):
+    def eval_log(self, loss, ppl, step):
         if not self.enabled:
             return
         
         self.run.log(
             data={
                 "Eval/loss": loss,
+                "Eval/ppl": ppl
             },
             step=step
         )
 
     def finish(self):
         if self.enabled:
-            self.run.finish
+            self.run.finish()
         
         logger.info("*" * 40)
         logger.info("Training finish.")

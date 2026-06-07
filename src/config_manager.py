@@ -41,8 +41,8 @@ class ModelConfig:
     num_heads: int
     d_ff: int
     rope_theta: float
-    device: str
-    dtype: str
+    device: str | None
+    dtype: str | None
 
 @dataclass
 class TrainingConfig:
@@ -51,6 +51,7 @@ class TrainingConfig:
     save_every: int
     save_dir: str
     batch_size: int
+    use_wandb: bool
 
 def load_BPEConfig() -> BPEConfig:
     with open(config_path, "r", encoding="utf-8") as config_file:
