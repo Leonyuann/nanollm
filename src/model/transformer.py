@@ -163,6 +163,13 @@ def softmax(
     x_exp_sum = torch.sum(x_exp, dim=dim, keepdim=True)
     return x_exp / x_exp_sum
 
+def temp_softmax(
+    x: torch.Tensor,
+    dim: int,
+    temperature: float,
+) -> torch.Tensor:
+    return softmax(x/temperature,dim)
+
 
 def scaled_dot_prodoct_attention(
     Q: Float[torch.Tensor, " ... queries d_k"],
