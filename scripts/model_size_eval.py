@@ -1,4 +1,13 @@
 from config_manager import load_ModelConfig
+from model import transformer
+
+
+def model_size_in_mb(model: transformer.TransformerLM) -> float:
+    size_in_bytes = sum(
+    parameter.numel() * parameter.element_size()
+    for parameter in model.parameters()
+    )
+    return size_in_bytes / 1024**2
 
 def main():
     cfg= load_ModelConfig()

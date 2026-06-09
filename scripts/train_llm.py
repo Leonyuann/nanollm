@@ -3,11 +3,14 @@ from tqdm import tqdm
 import argparse
 import numpy as np
 from loguru import logger
+from datetime import datetime
+from pathlib import Path
 
 from model import transformer
 from training import loss, optimizer, data, checkpoint
 from config_manager import load_ModelConfig, load_AdamWConfig, load_DataConfig, load_TrainingConfig
 from logger import WandbLogger
+from model_size_eval import model_size_in_mb
 
 def parse_args() -> argparse.Namespace:
     model_config = load_ModelConfig()
@@ -100,16 +103,34 @@ def eval_model (
     with torch.no_grad():
         logits = model(sample)
 
-        ppl = loss.perplexity(logits,target)
         celoss = loss.cross_entropy(logits, target)
+        ppl = torch.exp(celoss)
 
         wblogger.eval_log(celoss, ppl, step)
     return
 
+
+def save_checkpoint_to_dir(
+    model: transformer.TransformerLM,
+    optim: torch.optim.Optimizer,
+    step: int,
+    save_dir: str,
+):
+    size_in_mb = model_size_in_mb(model)
+    timestamp = datetime.now().strftime("%m%d-%H%M")
+
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+    file_name = save_path / f"LM-{size_in_mb:.1f}MB-{timestamp}-{step}.pt"
+
+    checkpoint.save_checkpoint(model, optim, step, file_name)
+    logger.info(f"Checkpoint saved at step {step} to {file_name}")
+    
+
 def loop (
     args: argparse.Namespace,
     model: transformer.TransformerLM,
-    optim: optimizer.AdamW,
+    optim: torch.optim.Optimizer,
 ):  
     wblogger = WandbLogger(args)
     # Semantics: finished training steps number
@@ -139,13 +160,13 @@ def loop (
         pbar.update(1)
         wblogger.train_log(loss=celoss, lr=optim.param_groups[0]['lr'], step=global_step)
 
-        if global_step % args.eval_every == 0:
+        if args.eval_every > 0 and global_step % args.eval_every == 0:
             eval_model(args, model, global_step, wblogger)
 
-        if global_step % args.save_every == 0:
-            None
+        if args.save_every > 0 and global_step % args.save_every == 0 and global_step != args.total_step:
+            save_checkpoint_to_dir(model, optim, global_step, args.save_dir)
 
-    checkpoint.save_checkpoint(model, optim, global_step, args.save_dir)
+    save_checkpoint_to_dir(model, optim, global_step, args.save_dir)
     pbar.close()
     wblogger.finish()
 
