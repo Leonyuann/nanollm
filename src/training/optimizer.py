@@ -143,7 +143,7 @@ def cosine_learning_lr_schedule(
     Cosine anealing learning rate schedule with linear warmup.
 
     Args:
-        step: Current iteration number (must be non-negative).
+        step: Current iteration number (must be positive).
         max_lr: Maximum learning rate (must be positive).
         min_lr: Minimum learning rate (must be non-negative).
         t_w: Number of warmup iterations (must be non-negative).    
@@ -161,9 +161,9 @@ def cosine_learning_lr_schedule(
         raise ValueError(f"lr_schedule: Invalid parameter value: t_c = {t_c}")
     
     if step < t_w :
-        lr = max_lr * step / t_w
+        lr = max_lr * step / t_w if t_w > 0 else max_lr
     elif step <= t_c :
-        lr = min_lr + (1/2) * (max_lr - min_lr) * (1 + math.cos(math.pi * (step - t_w) / (t_c - t_w)))
+        lr = min_lr + (1/2) * (max_lr - min_lr) * (1 + math.cos(math.pi * (step - t_w) / (t_c - t_w))) if t_c > t_w else min_lr
     else :
         lr = min_lr 
     return lr   

@@ -31,6 +31,9 @@ class AdamWConfig:
     beta2: float
     weight_decay: float
     eps: float
+    min_lr_ratio: float
+    warmup_steps: int
+    decay_steps: int
 
 @dataclass
 class ModelConfig:

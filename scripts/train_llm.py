@@ -43,6 +43,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--beta2", type=float, default=optimizer_config.beta2)
     parser.add_argument("--eps", type=float, default=optimizer_config.eps)
     parser.add_argument("--weight_decay", type=float, default=optimizer_config.weight_decay)
+    parser.add_argument("--min_lr_ratio", type=float, default=optimizer_config.min_lr_ratio)
+    parser.add_argument("--warmup_steps", type=int, default=optimizer_config.warmup_steps)
+    parser.add_argument("--decay_steps", type=int, default=optimizer_config.decay_steps)
+
 
     # Data config
     parser.add_argument("--training_data_path", type=str, default=data_config.training_data_path)
@@ -175,6 +179,18 @@ def loop (
         logits = model(sample)
         celoss = loss.cross_entropy(logits, target)
         celoss.backward()
+
+        # Apply cosine learning rate schedule
+        lr = optimizer.cosine_learning_lr_schedule(
+            step=global_step + 1,
+            max_lr=args.lr,
+            min_lr=args.min_lr_ratio * args.lr,
+            t_w=args.warmup_steps,
+            t_c=args.decay_steps,
+        )
+
+        for group in optim.param_groups:
+            group["lr"] = lr
 
         optim.step()
         optim.zero_grad()
