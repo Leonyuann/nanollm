@@ -12,13 +12,13 @@ def parse_args() -> argparse.Namespace:
         Parsed command-line arguments.
     """
     parser = argparse.ArgumentParser(
-        description="Train a BPE tokenizer. Uses OWT training data by default."
+        description="Train a BPE tokenizer. Uses TinyStories training data by default."
     )
 
     bpeconfig = load_BPEConfig()
     dataconfig = load_DataConfig()
 
-    parser.add_argument("--input_path", type=str, default=dataconfig.owt_train_path)
+    parser.add_argument("--input_path", type=str, default=dataconfig.TinyStories_train_path)
     parser.add_argument("--vocab_size", type=int, default=bpeconfig.vocab_size)
     parser.add_argument("--special_tokens", nargs="+", default=bpeconfig.special_tokens)
 

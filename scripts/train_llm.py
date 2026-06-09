@@ -85,12 +85,12 @@ def train(args):
 
 
 
-def eval(
+def eval_model (
     args: argparse.Namespace, 
     model: transformer.TransformerLM, 
     step: int,
     wblogger: WandbLogger
-    ):
+):
     eval_data = np.memmap(args.eval_data_path, dtype=np.uint16, mode='r')
 
     batch = data.data_loading(eval_data, args.batch_size, args.context_length, args.device)
@@ -140,11 +140,12 @@ def loop (
         wblogger.train_log(loss=celoss, lr=optim.param_groups[0]['lr'], step=global_step)
 
         if global_step % args.eval_every == 0:
-            eval(args, model, global_step, wblogger)
+            eval_model(args, model, global_step, wblogger)
 
         if global_step % args.save_every == 0:
             None
 
+    checkpoint.save_checkpoint(model, optim, global_step, args.save_dir)
     pbar.close()
     wblogger.finish()
 
