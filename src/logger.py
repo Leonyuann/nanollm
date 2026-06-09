@@ -3,6 +3,7 @@
 from loguru import logger
 import wandb
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class WandbLogger:
     def __init__(self, args):
@@ -57,12 +58,13 @@ class WandbLogger:
 
 
     def __build_run_name(self):
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%m%d-%H%M")
 
         return (
             f"D{self.cfg.d_model}-"
             f"L{self.cfg.num_layers}-"
             f"F{self.cfg.d_ff}-"
             f"LR{self.cfg.lr}-"
+            f"BS{self.cfg.batch_size}-"
             f"{timestamp}-"
         )

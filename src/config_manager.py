@@ -46,11 +46,14 @@ class ModelConfig:
 
 @dataclass
 class TrainingConfig:
+    seed: int
     training_step: int
+    eval_step: int
     eval_every: int
     save_every: int
     save_dir: str
     batch_size: int
+    eval_batch_size: int
     use_wandb: bool
 
 def load_BPEConfig() -> BPEConfig:

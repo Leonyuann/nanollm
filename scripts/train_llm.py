@@ -1,9 +1,11 @@
+import random
 import torch
 from tqdm import tqdm
 import argparse
 import numpy as np
 from loguru import logger
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from model import transformer
@@ -47,11 +49,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--eval_data_path", type=str, default=data_config.evaluation_data_path)
 
     # Training config
-    parser.add_argument("--total_step", type=int, default=training_config.training_step)
+    parser.add_argument("--seed", type=int, default=training_config.seed)
+    parser.add_argument("--training_step", type=int, default=training_config.training_step)
+    parser.add_argument("--eval_step", type=int, default=training_config.eval_step)
     parser.add_argument("--eval_every", type=int, default=training_config.eval_every)
     parser.add_argument("--save_every", type=int, default=training_config.save_every)
     parser.add_argument("--save_dir", type=str, default=training_config.save_dir)
     parser.add_argument("--batch_size", type=int, default=training_config.batch_size)
+    parser.add_argument("--eval_batch_size", type=int, default=training_config.eval_batch_size)
     parser.add_argument(
         "--use_wandb",
         action=argparse.BooleanOptionalAction,
@@ -60,7 +65,26 @@ def parse_args() -> argparse.Namespace:
     
     return parser.parse_args()
 
+
+def set_seed(seed: int) -> None:
+    """Seed all random number generators used during training.
+
+    Args:
+        seed: Non-negative random seed.
+    """
+    if seed < 0:
+        raise ValueError("seed must be non-negative.")
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
 def train(args):
+    set_seed(args.seed)
 
     model = transformer.TransformerLM(
         vocab_size= args.vocab_size,
@@ -87,26 +111,28 @@ def train(args):
     loop(args, model, optim)
 
 
-
 def eval_model (
     args: argparse.Namespace, 
     model: transformer.TransformerLM, 
     step: int,
     wblogger: WandbLogger
 ):
+    model.eval()
     eval_data = np.memmap(args.eval_data_path, dtype=np.uint16, mode='r')
 
-    batch = data.data_loading(eval_data, args.batch_size, args.context_length, args.device)
-    sample = batch[0]
-    target = batch[1]
+    mean_loss = 0.0
+    for i in range(args.eval_step):
+        with torch.no_grad():
+            sample ,target= data.data_loading(eval_data, args.eval_batch_size, args.context_length, args.device)
 
-    with torch.no_grad():
-        logits = model(sample)
+            logits = model(sample)
+            celoss = loss.cross_entropy(logits, target)
 
-        celoss = loss.cross_entropy(logits, target)
-        ppl = torch.exp(celoss)
+            mean_loss -= 1 / (i + 1) * (mean_loss - celoss)
 
-        wblogger.eval_log(celoss, ppl, step)
+    ppl = torch.exp(mean_loss)
+    wblogger.eval_log(mean_loss, ppl, step)
+    model.train()
     return
 
 
@@ -117,7 +143,7 @@ def save_checkpoint_to_dir(
     save_dir: str,
 ):
     size_in_mb = model_size_in_mb(model)
-    timestamp = datetime.now().strftime("%m%d-%H%M")
+    timestamp = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%m%d-%H%M")
 
     save_path = Path(save_dir)
     save_path.mkdir(parents=True, exist_ok=True)
@@ -140,16 +166,13 @@ def loop (
     training_data = np.memmap(args.training_data_path, dtype=np.uint16, mode='r')
 
     # Progress bar
-    pbar = tqdm(total=args.total_step, desc="Training", unit="step")
+    pbar = tqdm(total=args.training_step, desc="Training", unit="step")
 
     # Traing loop
-    while global_step < args.total_step:
-        batch = data.data_loading(training_data, args.batch_size, args.context_length, args.device)
-        sample = batch[0]
-        target = batch[1]
+    while global_step < args.training_step:
+        sample, target = data.data_loading(training_data, args.batch_size, args.context_length, args.device)
 
         logits = model(sample)
-
         celoss = loss.cross_entropy(logits, target)
         celoss.backward()
 
@@ -163,7 +186,7 @@ def loop (
         if args.eval_every > 0 and global_step % args.eval_every == 0:
             eval_model(args, model, global_step, wblogger)
 
-        if args.save_every > 0 and global_step % args.save_every == 0 and global_step != args.total_step:
+        if args.save_every > 0 and global_step % args.save_every == 0 and global_step != args.training_step:
             save_checkpoint_to_dir(model, optim, global_step, args.save_dir)
 
     save_checkpoint_to_dir(model, optim, global_step, args.save_dir)

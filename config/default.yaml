@@ -25,19 +25,22 @@ adamw:
 
 model:
   vocab_size: 10000
-  context_length: 2048
-  num_layers: 12
+  context_length: 256
+  num_layers: 4
   d_model: 512
-  num_heads: 8
+  num_heads: 16
   d_ff: 1344
   rope_theta: 10
   device: cuda
   dtype: null
 
 training:
-  training_step: 12000
+  seed: 42
+  training_step: 10000
+  eval_step: 100
   eval_every: 500
-  save_every: 500
+  save_every: 2000
   save_dir: "/xts001/checkpoints"
-  batch_size: 4
+  batch_size: 128
+  eval_batch_size: 256
   use_wandb: true
