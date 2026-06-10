@@ -17,7 +17,7 @@ transformer:
   RMSNorm_eps: 0.00001
 
 adamw:
-  lr: 0.001
+  lr: 0.004
   beta1: 0.9
   beta2: 0.95
   weight_decay: 0.01
@@ -47,4 +47,6 @@ training:
   batch_size: 128
   eval_batch_size: 128
   use_wandb: true
+  use_log: true
+  log_path: "./outputs/logs/training_runs.json"
   max_gradient_norm: 1.0

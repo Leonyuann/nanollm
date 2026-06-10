@@ -58,6 +58,8 @@ class TrainingConfig:
     batch_size: int
     eval_batch_size: int
     use_wandb: bool
+    use_log: bool
+    log_path: str
     max_gradient_norm: float
 
 def load_BPEConfig() -> BPEConfig:

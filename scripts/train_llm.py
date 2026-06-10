@@ -7,11 +7,13 @@ from loguru import logger
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from pathlib import Path
+import time
+
 
 from model import transformer
 from training import loss, optimizer, data, checkpoint
 from config_manager import load_ModelConfig, load_AdamWConfig, load_DataConfig, load_TrainingConfig
-from logger import WandbLogger
+from logger import WandbLogger, local_record
 from model_size_eval import model_size_in_mb
 
 def parse_args() -> argparse.Namespace:
@@ -66,8 +68,13 @@ def parse_args() -> argparse.Namespace:
         action=argparse.BooleanOptionalAction,
         default=training_config.use_wandb,
     )
+    parser.add_argument("--use_log",
+        action=argparse.BooleanOptionalAction,
+        default=training_config.use_log,
+    )
+    parser.add_argument("--log_path", type=str, default=training_config.log_path)
     parser.add_argument("--max_gradient_norm", type=float, default=training_config.max_gradient_norm)
-    
+
     return parser.parse_args()
 
 
@@ -117,11 +124,9 @@ def train(args):
 
 
 def eval_model (
-    args: argparse.Namespace, 
-    model: transformer.TransformerLM, 
-    step: int,
-    wblogger: WandbLogger
-):
+    args: argparse.Namespace,
+    model: transformer.TransformerLM,
+) -> tuple[torch.Tensor, torch.Tensor]:
     model.eval()
     eval_data = np.memmap(args.eval_data_path, dtype=np.uint16, mode='r')
 
@@ -136,9 +141,8 @@ def eval_model (
             mean_loss -= 1 / (i + 1) * (mean_loss - celoss)
 
     ppl = torch.exp(mean_loss)
-    wblogger.eval_log(mean_loss, ppl, step)
     model.train()
-    return
+    return mean_loss, ppl
 
 
 def save_checkpoint_to_dir(
@@ -156,13 +160,14 @@ def save_checkpoint_to_dir(
 
     checkpoint.save_checkpoint(model, optim, step, file_name)
     logger.info(f"Checkpoint saved at step {step} to {file_name}")
-    
+
+
 
 def loop (
     args: argparse.Namespace,
     model: transformer.TransformerLM,
     optim: torch.optim.Optimizer,
-):  
+):
     wblogger = WandbLogger(args)
     # Semantics: finished training steps number
     global_step = 0
@@ -173,6 +178,8 @@ def loop (
     # Progress bar
     pbar = tqdm(total=args.training_step, desc="Training", unit="step")
 
+    # Time record
+    start_time = time.time()
     # Traing loop
     while global_step < args.training_step:
         sample, target = data.data_loading(training_data, args.batch_size, args.context_length, args.device)
@@ -196,20 +203,64 @@ def loop (
         for group in optim.param_groups:
             group["lr"] = lr
 
+        # Update parameters and zero gradients
         optim.step()
         optim.zero_grad()
 
+        # Update global step
         global_step += 1
+
+        # Update progress bar and log training metrics
         pbar.update(1)
-        wblogger.train_log(loss=celoss, lr=optim.param_groups[0]['lr'], step=global_step)
+        wblogger.train_log(
+            {
+                "loss": celoss.item(),
+                "lr": optim.param_groups[0]['lr'],
+            },
+            step=global_step
+        )
 
+        # Evaluation
         if args.eval_every > 0 and global_step % args.eval_every == 0:
-            eval_model(args, model, global_step, wblogger)
+            eval_loss, ppl = eval_model(args, model)
+            wblogger.eval_log(
+                {
+                    "loss": eval_loss.item(),
+                    "ppl": ppl.item(),
+                },
+                step=global_step
+            )
 
+        # Checkpointing
         if args.save_every > 0 and global_step % args.save_every == 0 and global_step != args.training_step:
             save_checkpoint_to_dir(model, optim, global_step, args.save_dir)
-
+    # End of training loop
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    # Final checkpoint and record
     save_checkpoint_to_dir(model, optim, global_step, args.save_dir)
+
+    # if use_log is enabled, save the training record to local file
+    if args.use_log:
+        local_record(
+            args.log_path,
+            {
+                "run-id": datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%m%d-%H%M"),
+                "parameters": sum(parameter.numel() for parameter in model.parameters()),
+                "data": args.context_length * args.batch_size * args.training_step,
+                "compute_budget": 6 * sum(parameter.numel() for parameter in model.parameters()) * args.context_length * args.batch_size * args.training_step,
+                "num_layers": args.num_layers,
+                "d_model": args.d_model,
+                "num_heads": args.num_heads,
+                "sequence_length": args.context_length,
+                "batch_size": args.batch_size,
+                "lr": args.lr,
+                "warmup_steps": args.warmup_steps,
+                "weight_decay": args.weight_decay,
+                "wall_clock_seconds": elapsed_time,
+                "valid_loss": eval_loss.item(),
+            }
+        )
     pbar.close()
     wblogger.finish()
 
