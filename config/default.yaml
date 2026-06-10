@@ -13,8 +13,6 @@ data:
   training_data_path: "/xts001/data/training_data"
   evaluation_data_path: "/xts001/data/evaluation_data"
 
-transformer:
-  RMSNorm_eps: 0.00001
 
 adamw:
   lr: 0.004

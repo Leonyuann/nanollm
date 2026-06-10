@@ -20,9 +20,6 @@ class DataConfig:
     training_data_path: str
     evaluation_data_path: str
 
-@dataclass
-class TransformerConfig:
-    RMSNorm_eps: float
 
 @dataclass
 class AdamWConfig:
@@ -62,43 +59,40 @@ class TrainingConfig:
     log_path: str
     max_gradient_norm: float
 
-def load_BPEConfig() -> BPEConfig:
-    with open(config_path, "r", encoding="utf-8") as config_file:
+def load_BPEConfig(path: str = config_path) -> BPEConfig:
+    with open(path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
     
     return BPEConfig(**config_data["bpe"])
 
-def load_DataConfig() -> DataConfig:
-    with open(config_path, "r", encoding="utf-8") as config_file:
+def load_DataConfig(path: str = config_path) -> DataConfig:
+    with open(path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
     
     return DataConfig(**config_data["data"])
 
-def load_TransformerConfig() -> TransformerConfig:
-    with open(config_path, "r", encoding="utf-8") as config_file:
-        config_data = yaml.safe_load(config_file)
-    
-    return TransformerConfig(**config_data["transformer"])
-
-def load_AdamWConfig() -> AdamWConfig:
-    with open(config_path, "r", encoding="utf-8") as config_file:
+def load_AdamWConfig(path: str = config_path) -> AdamWConfig:
+    with open(path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
 
     return AdamWConfig(**config_data["adamw"])
 
-def load_ModelConfig() -> ModelConfig:
-    """Load model hyperparameters from the default YAML config.
+def load_ModelConfig(path: str = config_path) -> ModelConfig:
+    """Load model hyperparameters from a YAML config.
+
+    Args:
+        path: Path to the YAML configuration file.
 
     Returns:
         ModelConfig: Model configuration with PyTorch device and dtype values.
     """
-    with open(config_path, "r", encoding="utf-8") as config_file:
+    with open(path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
 
     return ModelConfig(**config_data["model"])
 
-def load_TrainingConfig() -> TrainingConfig:
-    with open(config_path, "r", encoding="utf-8") as config_file:
+def load_TrainingConfig(path: str = config_path) -> TrainingConfig:
+    with open(path, "r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
     
     return TrainingConfig(**config_data["training"])

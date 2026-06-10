@@ -6,11 +6,9 @@ import math
 from einops import einsum, rearrange
 from jaxtyping import Bool, Float, Int
 
-from config_manager import load_TransformerConfig
 from model import module
 
-transformer_config = load_TransformerConfig()
-RMSNORM_EPS = transformer_config.RMSNorm_eps
+RMSNORM_EPS = 0.00001
 
 class RMSNorm(torch.nn.Module):
     """

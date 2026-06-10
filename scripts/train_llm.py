@@ -12,17 +12,31 @@ import time
 
 from model import transformer
 from training import loss, optimizer, data, checkpoint
-from config_manager import load_ModelConfig, load_AdamWConfig, load_DataConfig, load_TrainingConfig
+from config_manager import (
+    load_AdamWConfig,
+    load_DataConfig,
+    load_ModelConfig,
+    load_TrainingConfig,
+)
 from logger import WandbLogger, local_record
 from model_size_eval import model_size_in_mb
 
 def parse_args() -> argparse.Namespace:
-    model_config = load_ModelConfig()
-    optimizer_config = load_AdamWConfig()
-    data_config = load_DataConfig()
-    training_config = load_TrainingConfig()
+    config_parser = argparse.ArgumentParser(add_help=False)
+    config_parser.add_argument("--config", default="config/default.yaml")
+    config_args, _ = config_parser.parse_known_args()
+
+    model_config = load_ModelConfig(config_args.config)
+    optimizer_config = load_AdamWConfig(config_args.config)
+    data_config = load_DataConfig(config_args.config)
+    training_config = load_TrainingConfig(config_args.config)
 
     parser = argparse.ArgumentParser(description="nanoLLM training loop.")
+    parser.add_argument(
+        "--config",
+        default=config_args.config,
+        help="Path to the base YAML configuration file.",
+    )
 
     # Model config
     parser.add_argument("--vocab_size" ,type=int, default=model_config.vocab_size)
