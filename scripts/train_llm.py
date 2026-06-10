@@ -66,6 +66,7 @@ def parse_args() -> argparse.Namespace:
         action=argparse.BooleanOptionalAction,
         default=training_config.use_wandb,
     )
+    parser.add_argument("--max_gradient_norm", type=float, default=training_config.max_gradient_norm)
     
     return parser.parse_args()
 
@@ -179,6 +180,9 @@ def loop (
         logits = model(sample)
         celoss = loss.cross_entropy(logits, target)
         celoss.backward()
+
+        # Apply gradient clipping
+        optimizer.gradient_clipping(model.parameters(),args.max_gradient_norm)
 
         # Apply cosine learning rate schedule
         lr = optimizer.cosine_learning_lr_schedule(

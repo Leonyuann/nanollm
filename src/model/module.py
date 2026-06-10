@@ -29,9 +29,9 @@ class Linear(nn.Module):
         super().__init__()
         self.weight = nn.Parameter(nn.init.trunc_normal_(
             torch.empty(out_features, in_features, dtype=dtype, device=device),
-            std=2/(in_features + out_features)**0.5,
-            a=-3 * (2/(in_features + out_features)**0.5),
-            b=3 * (2/(in_features + out_features)**0.5)
+            std=2/(in_features + out_features),
+            a=-3 * (2/(in_features + out_features))**0.5,
+            b=3 * (2/(in_features + out_features))**0.5
         ))
 
         
@@ -59,11 +59,11 @@ class Embedding(nn.Module):
     ):
         super().__init__()
         self.weight = nn.Parameter(nn.init.trunc_normal_(
-            torch.empty(num_embedings, embedding_dim, dtype=dtype, device=device)),
-            std=1,
-            a=-2.0,
-            b=-2.0,
-            )
+            torch.empty(num_embedings, embedding_dim, dtype=dtype, device=device),
+            std=1.0,
+            a=-3.0,
+            b=3.0,
+        ))
         
     def forward(
         self,

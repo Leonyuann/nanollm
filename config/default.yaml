@@ -47,3 +47,4 @@ training:
   batch_size: 128
   eval_batch_size: 128
   use_wandb: true
+  max_gradient_norm: 1.0
