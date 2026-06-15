@@ -10,7 +10,7 @@ def model_size_in_mb(model: transformer.TransformerLM) -> float:
     return size_in_bytes / 1024**2
 
 def main():
-    cfg= load_ModelConfig()
+    cfg= load_ModelConfig("config/42,53.yaml")
     print(f"Model config: {cfg}")
 
     embeddings_size = cfg.d_model * cfg.vocab_size
@@ -31,7 +31,18 @@ def main():
     total_size = embeddings_size + transformer_size + output_size
     print(f"Total model size (number of parameters): {total_size:,}")
 
-    size_in_mb = total_size * 4 / (1024 ** 2)  # Assuming 4 bytes per parameter (float32)
+    model = transformer.TransformerLM(
+        vocab_size= cfg.vocab_size,
+        context_length= cfg.context_length,
+        num_layers= cfg.num_layers,
+        d_model= cfg.d_model,
+        num_heads= cfg.num_heads,
+        d_ff= cfg.d_ff,
+        rope_theta= cfg.rope_theta,
+        device= cfg.device,
+        dtype= cfg.dtype,
+    )
+    size_in_mb = model_size_in_mb(model)
     print(f"Total model size: {size_in_mb:.2f} MB")
     return 
 

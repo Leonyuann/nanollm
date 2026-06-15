@@ -255,6 +255,7 @@ def loop (
     save_checkpoint_to_dir(model, optim, global_step, args.save_dir)
 
     # if use_log is enabled, save the training record to local file
+    eval_loss, ppl = eval_model(args, model)
     if args.use_log:
         local_record(
             args.log_path,
