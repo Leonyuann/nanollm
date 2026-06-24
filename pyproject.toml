@@ -20,6 +20,7 @@ dependencies = [
     "torch==2.10.0",
     "tqdm>=4.68.1",
     "wandb>=0.27.1",
+    "xopen>=2.1.0",
 ]
 
 [build-system]
@@ -37,3 +38,7 @@ markers = [
     "unit: unit tests",
     "integration: integration tests",
 ]
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+default = true

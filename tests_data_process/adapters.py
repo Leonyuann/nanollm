@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-
+from data_process.filter import mask_emails, mask_phone_numbers, mask_ips
 
 def run_extract_text_from_html_bytes(html_bytes: bytes) -> str | None:
     raise NotImplementedError
@@ -14,15 +14,15 @@ def run_identify_language(text: str) -> tuple[Any, float]:
 
 
 def run_mask_emails(text: str) -> tuple[str, int]:
-    raise NotImplementedError
+    return mask_emails(text)
 
 
 def run_mask_phone_numbers(text: str) -> tuple[str, int]:
-    raise NotImplementedError
+    return mask_phone_numbers(text)
 
 
 def run_mask_ips(text: str) -> tuple[str, int]:
-    raise NotImplementedError
+    return mask_ips(text)
 
 
 def run_classify_nsfw(text: str) -> tuple[Any, float]:
