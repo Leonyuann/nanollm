@@ -13,7 +13,7 @@ def test_identify_language_english():
     predicted_language, score = run_identify_language(moby_expected_text)
     # TODO: you may have to change this check below, depending on what your
     # language ID system returns.
-    assert predicted_language == "en"
+    assert predicted_language == "__label__en"
     assert isinstance(score, float)
     assert score > 0
 
@@ -22,6 +22,6 @@ def test_identify_language_chinese_simplified():
     predicted_language, score = run_identify_language("欢迎来到我们的网站")
     # TODO: you may have to change this check below, depending on what your
     # language ID system returns.
-    assert predicted_language == "zh"
+    assert predicted_language == "__label__zh"
     assert isinstance(score, float)
     assert score > 0

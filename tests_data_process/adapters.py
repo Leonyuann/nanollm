@@ -3,14 +3,14 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from data_process.filter import mask_emails, mask_phone_numbers, mask_ips
+from data_process.filter import mask_emails, mask_phone_numbers, mask_ips, language_identificatin
 
 def run_extract_text_from_html_bytes(html_bytes: bytes) -> str | None:
     raise NotImplementedError
 
 
 def run_identify_language(text: str) -> tuple[Any, float]:
-    raise NotImplementedError
+    return language_identificatin(text)
 
 
 def run_mask_emails(text: str) -> tuple[str, int]:
