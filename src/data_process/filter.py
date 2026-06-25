@@ -93,3 +93,4 @@ def mask_pii(text: str) -> tuple[str, int]:
     text, phone_number_count = mask_phone_numbers(text)
     text, ips_count = mask_ips(text)
     return text, email_count + phone_number_count + ips_count
+

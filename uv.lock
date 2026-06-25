@@ -507,6 +507,7 @@ dependencies = [
     { name = "torch" },
     { name = "tqdm" },
     { name = "wandb" },
+    { name = "warcio" },
     { name = "xopen" },
 ]
 
@@ -528,6 +529,7 @@ requires-dist = [
     { name = "torch", specifier = "==2.10.0" },
     { name = "tqdm", specifier = ">=4.68.1" },
     { name = "wandb", specifier = ">=0.27.1" },
+    { name = "warcio", specifier = ">=1.8.1" },
     { name = "xopen", specifier = ">=2.1.0" },
 ]
 
@@ -1173,6 +1175,15 @@ wheels = [
 ]
 
 [[package]]
+name = "six"
+version = "1.17.0"
+source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple" }
+sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
+wheels = [
+    { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
+]
+
+[[package]]
 name = "smmap"
 version = "5.0.3"
 source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple" }
@@ -1399,6 +1410,18 @@ wheels = [
     { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/fa/14/91283eb2a17063091858f9f2b822437b16d75e53d742e295db1b479dcca4/wandb-0.27.1-py3-none-win32.whl", hash = "sha256:38dd902b56188789d3b17c03f8f77fef97a0b1c5aecee94c5bd70836e667b2cf", size = 24149484, upload-time = "2026-06-04T04:28:16.712Z" },
     { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/7a/a9/7d25ba1386fe6b4dea65342aba7c82a9ac3294cb591b449622b31d75e0c5/wandb-0.27.1-py3-none-win_amd64.whl", hash = "sha256:2d7e4bb60a28756a0a6c78884dbad60bcd07e7cf840cdd8e3a3873bdf2af62af", size = 24149492, upload-time = "2026-06-04T04:28:18.85Z" },
     { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/5d/b4/ed3e3410d0a86b9542c4cd3839f47bd72493063240759e7120f38637a9c0/wandb-0.27.1-py3-none-win_arm64.whl", hash = "sha256:356eda1fbce41101286935f5291e7db5ddfd062b23ddbbdd1d45ed03763ba2c4", size = 22059130, upload-time = "2026-06-04T04:28:20.985Z" },
+]
+
+[[package]]
+name = "warcio"
+version = "1.8.1"
+source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/20/78/df7e1c40a3751ea966be84eb6645270831e511f9932740b5251ace028cfa/warcio-1.8.1.tar.gz", hash = "sha256:76f71b22159ca3c043521e10ee8a2478d167672ad1d137c7c15e40b0d5c73ccd", size = 65772, upload-time = "2026-03-31T16:10:32.196Z" }
+wheels = [
+    { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/c5/be/d92c0899bd52c7f82fc0f8caa8fb3c624e6d1006ee208c710060cda216c2/warcio-1.8.1-py2.py3-none-any.whl", hash = "sha256:82345c5914d36cb5e0513210dbf759e3db348bf8d0f7762996ccce3a5ce6e87b", size = 41578, upload-time = "2026-03-31T16:10:31.059Z" },
 ]
 
 [[package]]
