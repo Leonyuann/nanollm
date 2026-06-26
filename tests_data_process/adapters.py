@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 from data_process.filter import mask_emails, mask_phone_numbers, mask_ips, language_identificatin, gopher_quality_filter
-from data_process.deduplication import exact_deduplication_on_files
+from data_process.deduplication import exact_deduplication_on_files, minhash_deduplicatin
 
 def run_extract_text_from_html_bytes(html_bytes: bytes) -> str | None:
     raise NotImplementedError
@@ -56,4 +56,11 @@ def run_minhash_deduplication(
     jaccard_threshold: float,
     output_directory: os.PathLike,
 ):
-    raise NotImplementedError
+    return minhash_deduplicatin(
+        input_files=input_files,
+        num_hash_fun=num_hashes,
+        num_bands=num_bands,
+        n_gram_length=ngrams,
+        theshold=jaccard_threshold,
+        output_dir=output_directory,
+    )
