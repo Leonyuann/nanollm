@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from data_process.filter import mask_emails, mask_phone_numbers, mask_ips, language_identificatin
+from data_process.filter import mask_emails, mask_phone_numbers, mask_ips, language_identificatin, gopher_quality_filter
 
 def run_extract_text_from_html_bytes(html_bytes: bytes) -> str | None:
     raise NotImplementedError
@@ -38,7 +38,7 @@ def run_classify_quality(text: str) -> tuple[Any, float]:
 
 
 def run_gopher_quality_filter(text: str) -> bool:
-    raise NotImplementedError
+    return gopher_quality_filter(text)
 
 
 def run_exact_line_deduplication(

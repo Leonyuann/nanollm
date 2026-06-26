@@ -2,6 +2,8 @@
 """
 import re
 import fasttext
+import nltk
+nltk.download("punkt_tab")  
 
 EMAIL_RE = re.compile(r"[0-9a-zA-Z_.+-]+@[0-9a-zA-Z.]+\.[0-9a-zA-Z]+")
 PHONE_NUMBER_RE = re.compile(
@@ -94,3 +96,68 @@ def mask_pii(text: str) -> tuple[str, int]:
     text, ips_count = mask_ips(text)
     return text, email_count + phone_number_count + ips_count
 
+def gopher_quality_filter(text: str, language = "english" )-> bool:
+    """ Filter text based on a subset of Gopher quality criteria.
+
+    Applied criteria:
+    - Average word length between 3 and 10 characters.
+    - Total number of non-symbol words between 50 and 100,000.
+    - Average word length between 3 and 10 characters.
+    - Less than 30% of lines end with an ellipsis ("...").
+
+    Args:
+        text: Input text to filter.
+        language: Language of the text.
+
+    Returns:
+        True if the text passes the quality filter, False otherwise.
+    """
+    words = nltk.word_tokenize(text,language)
+    if __word_length_filter(words) is False:
+        return False
+    
+    if __text_length_filter(words) is False:
+        return False
+    
+    if __ellipsis_ending_filter(text) is False:
+        return False
+    
+    if __alphabetic_character_filter(words) is False:
+        return False
+    
+    return True
+
+def __word_length_filter(words: list[str], min_length = 3, max_length = 10) -> bool:
+    length = 0
+    for i, word in enumerate(words,start=1):
+        length = length - 1 / i *(length-len(word))
+
+    if length < min_length or length > max_length:
+        return False
+    return True 
+
+def __text_length_filter(words: list[str], min_length = 50, max_length = 100000) -> bool:
+    if len(words) < min_length or len(words) > max_length:
+        return False
+    return True
+
+def __ellipsis_ending_filter(text:str, max_ratio=0.3) -> bool:
+    ellipsis_num = sum(1 for _ in re.finditer(r"\.\.\.", text))
+    line_num = sum(1 for _ in re.finditer("\n", text))
+    if line_num == 0:
+        return True
+    if ellipsis_num / line_num > max_ratio:
+        return False
+    return True
+
+def __alphabetic_character_filter(words: list[str], min_ratio =0.8) -> bool:
+    num_alpha = 0
+    for word in words:
+        m = re.search(r"[a-zA-Z]", word)
+        if m is not None:
+            num_alpha += 1
+
+    if num_alpha/len(words) < min_ratio:
+        return False
+    
+    return True
