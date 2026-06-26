@@ -113,6 +113,10 @@ def gopher_quality_filter(text: str, language = "english" )-> bool:
         True if the text passes the quality filter, False otherwise.
     """
     words = nltk.word_tokenize(text,language)
+
+    if __language_filter(language) is False:
+        return False
+    
     if __word_length_filter(words) is False:
         return False
     
@@ -160,4 +164,9 @@ def __alphabetic_character_filter(words: list[str], min_ratio =0.8) -> bool:
     if num_alpha/len(words) < min_ratio:
         return False
     
+    return True
+
+def __language_filter(language: str, target_language: str ="english") -> bool:
+    if language != target_language:
+        return False
     return True

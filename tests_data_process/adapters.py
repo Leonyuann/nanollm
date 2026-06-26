@@ -4,6 +4,7 @@ import os
 from typing import Any
 
 from data_process.filter import mask_emails, mask_phone_numbers, mask_ips, language_identificatin, gopher_quality_filter
+from data_process.deduplication import exact_deduplication_on_files
 
 def run_extract_text_from_html_bytes(html_bytes: bytes) -> str | None:
     raise NotImplementedError
@@ -44,7 +45,7 @@ def run_gopher_quality_filter(text: str) -> bool:
 def run_exact_line_deduplication(
     input_files: list[os.PathLike], output_directory: os.PathLike
 ):
-    raise NotImplementedError
+    return exact_deduplication_on_files(input_files, output_directory)
 
 
 def run_minhash_deduplication(
