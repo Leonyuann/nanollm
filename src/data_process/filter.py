@@ -96,7 +96,7 @@ def mask_pii(text: str) -> tuple[str, int]:
     text, ips_count = mask_ips(text)
     return text, email_count + phone_number_count + ips_count
 
-def gopher_quality_filter(text: str, language = "english" )-> bool:
+def gopher_quality_filter(text: str, language : str= "english" )-> bool:
     """ Filter text based on a subset of Gopher quality criteria.
 
     Applied criteria:
@@ -112,10 +112,10 @@ def gopher_quality_filter(text: str, language = "english" )-> bool:
     Returns:
         True if the text passes the quality filter, False otherwise.
     """
-    words = nltk.word_tokenize(text,language)
-
     if __language_filter(language) is False:
         return False
+    
+    words = nltk.word_tokenize(text,language)
     
     if __word_length_filter(words) is False:
         return False

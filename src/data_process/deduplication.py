@@ -31,7 +31,7 @@ class UnionFind:
         return True
         
 
-def exact_deduplication_on_files(input_files: list[str], output_dir: str):
+def exact_deduplication_on_files(input_files: list[str], output_dir: str) -> int:
     """Remove duplicate lines from a list of files and write the unique lines to a new directory.
     
     Args:
@@ -39,7 +39,7 @@ def exact_deduplication_on_files(input_files: list[str], output_dir: str):
         output_dir: Directory path where deduplicated files will be written.        
 
     Returns:
-        None. Deduplicated files are written to the specified output directory.  
+        number of deleted characters. 
     """
 
     for input_file in input_files:
@@ -50,6 +50,7 @@ def exact_deduplication_on_files(input_files: list[str], output_dir: str):
     output_dir.mkdir(parents=True, exist_ok=True)
     
     repeated_num = {}
+    deleted_ch = 0
     # Count repeated sentences among all files
     for input_file in input_files:
         with open(input_file, mode="rb") as source:
@@ -64,9 +65,12 @@ def exact_deduplication_on_files(input_files: list[str], output_dir: str):
             open(target_file, mode="wb") as target):        
             for line in source:
                 if repeated_num[hashlib.sha256(line).digest()] > 1:
+                    deleted_ch += len(line.decode("utf-8"))
                     continue
 
                 target.write(line)
+
+    return deleted_ch
 
 def minhash_deduplicatin(
     input_files: list[str],
@@ -75,7 +79,7 @@ def minhash_deduplicatin(
     n_gram_length: int,
     output_dir: str,
     theshold: float = 0.9,
-):
+) -> int:
     """ Remove near-duplicate files from a list of files using MinHash and 
     Locality-Sensitive Hashing (LSH) and write the unique files to a new directory.
     
@@ -87,6 +91,8 @@ def minhash_deduplicatin(
         output_dir: Directory path where deduplicated files will be written.
         theshold: Jaccard similarity threshold for considering files as duplicates. Default is 0.9.
 
+    Return: 
+        number of deleted files
     """
 
     # Check if all input files are exist
@@ -135,10 +141,11 @@ def minhash_deduplicatin(
             uf_set.union(file_id, candidate)
 
     kept_roots: set[int] = set()
-
+    deleted_text = 0
     for file_id, input_file in enumerate(input_files):
         root = uf_set.find(file_id)
         if root in kept_roots:
+            deleted_text += 1
             continue
 
         kept_roots.add(root)
@@ -146,6 +153,8 @@ def minhash_deduplicatin(
         source_file = Path(input_file)
         output_file = output_dir / source_file.name
         output_file.write_text(source_file.read_text(encoding="utf-8"), encoding="utf-8")
+
+    return deleted_text
 
 
 def __make_minhash(input_files: str, num_hash_fun: int, n_gram_length: int) :
